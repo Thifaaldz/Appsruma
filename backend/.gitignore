@@ -1,0 +1,6 @@
+.env.local
+*.log
+main
+tmp/
+dist/
+vendor/
