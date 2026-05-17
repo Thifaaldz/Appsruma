@@ -1,107 +1,146 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/room_provider.dart';
-import '../models/room.dart';
+import '../core/theme.dart';
 
-class RoomScreen extends StatefulWidget {
+class RoomScreen extends StatelessWidget {
   const RoomScreen({super.key});
 
   @override
-  State<RoomScreen> createState() => _RoomScreenState();
-}
-
-class _RoomScreenState extends State<RoomScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => context.read<RoomProvider>().fetchRooms());
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final roomProvider = context.watch<RoomProvider>();
+    // Mock data for rooms
+    final List<Map<String, dynamic>> rooms = [
+      {'name': 'A1', 'property': 'Kos Anggrek', 'period': 'April s/d Oktober', 'price': 'Rp. 1.500.000', 'status': 'Terisi'},
+      {'name': 'A2', 'property': 'Kos Anggrek', 'period': 'April s/d Oktober', 'price': 'Rp. 1.500.000', 'status': 'Terisi'},
+      {'name': 'A3', 'property': 'Kos Anggrek', 'period': '...', 'price': 'Rp. 1.500.000', 'status': 'Kosong'},
+      {'name': 'A4', 'property': 'Kos Anggrek', 'period': 'April s/d Oktober', 'price': 'Rp. 1.500.000', 'status': 'Terisi'},
+      {'name': 'A5', 'property': 'Kos Anggrek', 'period': 'April s/d Oktober', 'price': 'Rp. 1.500.000', 'status': 'Terisi'},
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Rooms'),
+        title: const Text(''), // Empty, could have RUMA logo
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showRoomDialog(context),
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Center(
+              child: Image.asset(
+                'assets/RUMA LOGO 1.png',
+                height: 32,
+                color: AppTheme.darkOlive,
+              ),
+            ),
           ),
         ],
       ),
-      body: roomProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: roomProvider.rooms.length,
-              itemBuilder: (context, index) {
-                final room = roomProvider.rooms[index];
-                return ListTile(
-                  title: Text('Room ${room.roomNumber}'),
-                  subtitle: Text('Status: ${room.status} - Price: ${room.price}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showRoomDialog(context, room: room),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => roomProvider.deleteRoom(room.id),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-    );
-  }
-
-  void _showRoomDialog(BuildContext context, {Room? room}) {
-    final numberController = TextEditingController(text: room?.roomNumber ?? '');
-    final priceController = TextEditingController(text: room?.price.toString() ?? '');
-    String status = room?.status ?? 'available';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(room == null ? 'Add Room' : 'Edit Room'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(controller: numberController, decoration: const InputDecoration(labelText: 'Room Number')),
-            TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number),
-            DropdownButton<String>(
-              value: status,
-              items: ['available', 'occupied', 'maintenance'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (val) => setState(() => status = val!),
+            ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add),
+              label: const Text('Tambah Kamar'),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: const Icon(Icons.filter_list, color: Colors.grey),
+                filled: true,
+                fillColor: AppTheme.cardWhite,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: rooms.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final room = rooms[index];
+                  final isOccupied = room['status'] == 'Terisi';
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardWhite,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                room['name'],
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
+                              ),
+                              Text(
+                                room['property'],
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(room['period'], style: const TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isOccupied ? AppTheme.statusGreenBg : AppTheme.statusRedBg,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                room['status'],
+                                style: TextStyle(
+                                  color: isOccupied ? AppTheme.statusGreenText : AppTheme.statusRedText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              room['price'],
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              final newRoom = Room(
-                id: room?.id ?? 0,
-                boardingHouseId: 1, // Default for now
-                roomNumber: numberController.text,
-                price: double.parse(priceController.text),
-                status: status,
-              );
-              bool success;
-              if (room == null) {
-                success = await context.read<RoomProvider>().addRoom(newRoom);
-              } else {
-                success = await context.read<RoomProvider>().updateRoom(room.id, newRoom);
-              }
-              if (success) Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }

@@ -12,6 +12,7 @@ type BoardingHouse struct {
 	Owner     User           `gorm:"foreignKey:OwnerID" json:"owner"`
 	Name      string         `gorm:"size:100" json:"name"`
 	Address   string         `gorm:"type:text" json:"address"`
+	ImageUrl  string         `gorm:"type:text" json:"image_url"`
 	Rooms     []Room         `json:"rooms"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

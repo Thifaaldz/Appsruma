@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
-import 'tenant_detail_screen.dart';
+import 'complaint_detail_screen.dart';
 
-class TenantScreen extends StatelessWidget {
-  const TenantScreen({super.key});
+class ComplaintScreen extends StatelessWidget {
+  const ComplaintScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for tenants
-    final List<Map<String, dynamic>> tenants = List.generate(5, (index) => {
-      'name': 'Rosita Samsulellika',
-      'property': 'Kos Anggrek | Kamar A1',
-      'checkin': '5 April 2026',
-      'phone': '0812-7653-2261',
-    });
+    // Mock data for complaints
+    final List<Map<String, dynamic>> complaints = [
+      {'title': 'Toilet Mampet', 'subtitle': 'Annisa NF | Kos Anggrek A1', 'status': 'Belum diproses'},
+      {'title': 'Air Suka Mati', 'subtitle': 'Dimas A | Kos Anggrek A1', 'status': 'Done'},
+      {'title': 'AC Bocor', 'subtitle': 'Fahra Fazira | Kos Anggrek A1', 'status': 'Sedang di proses'},
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -36,11 +35,11 @@ class TenantScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('List Penghuni', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28)),
+            Text('Keluhan', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28)),
             const SizedBox(height: 16),
             TextField(
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: 'Cari Keluhan',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: AppTheme.cardWhite,
@@ -54,16 +53,24 @@ class TenantScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Expanded(
               child: ListView.separated(
-                itemCount: tenants.length,
+                itemCount: complaints.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final tenant = tenants[index];
+                  final complaint = complaints[index];
+                  final status = complaint['status'] as String;
+                  
+                  Color statusBgColor = AppTheme.statusRedBg;
+                  if (status == 'Done') {
+                    statusBgColor = AppTheme.statusGreenBg;
+                  } else if (status == 'Sedang di proses') {
+                    statusBgColor = AppTheme.statusBlueBg;
+                  }
 
                   return GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const TenantDetailScreen()),
+                        MaterialPageRoute(builder: (_) => const ComplaintDetailScreen()),
                       );
                     },
                     child: Container(
@@ -88,43 +95,40 @@ class TenantScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  tenant['name'],
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  complaint['title'],
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 20),
                                 ),
                                 Text(
-                                  tenant['property'],
-                                  style: const TextStyle(fontSize: 12),
+                                  complaint['subtitle'],
+                                  style: const TextStyle(fontSize: 14),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.calendar_today, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(tenant['checkin'], style: const TextStyle(fontSize: 12)),
-                                  ],
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: statusBgColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          status,
+                                          style: const TextStyle(
+                                            color: AppTheme.textDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.chevron_right, size: 16),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(tenant['phone'], style: const TextStyle(fontSize: 12)),
                               ],
                             ),
-                          ),
-                          Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppTheme.statusBlueBg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.phone),
-                                  onPressed: () {},
-                                  color: AppTheme.darkOlive,
-                                  iconSize: 20,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Icon(Icons.chevron_right, color: Colors.grey),
-                            ],
                           ),
                         ],
                       ),

@@ -4,7 +4,8 @@ import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/tenant_provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
+import 'core/theme.dart';
 
 void main() {
   runApp(
@@ -26,14 +27,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Kos Owner',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.theme,
+      debugShowCheckedModeBanner: false,
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           if (auth.token != null) {
-            return const HomeScreen();
+            return const MainScreen();
           }
           return const LoginScreen();
         },

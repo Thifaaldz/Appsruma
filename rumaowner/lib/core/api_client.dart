@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://localhost:8080/api', // Adjust if running on emulator
+    baseUrl: 'http://192.168.100.60:8080/api', // LAN IP for physical device
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));
