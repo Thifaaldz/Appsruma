@@ -115,7 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkOlive),
                           )
-                        : const Text('Login'), // The button says "Login" in the design, keeping it consistent.
+                        : const Text('Daftar'),
                   ),
                 ),
               ),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/boarding_house_provider.dart';
+import '../models/boarding_house.dart';
 import '../core/theme.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
@@ -11,7 +14,45 @@ class PropertyDetailScreen extends StatefulWidget {
 class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
-  final _roomCountController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final address = _addressController.text.trim();
+
+    if (name.isEmpty || address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama dan alamat harus diisi!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final bh = BoardingHouse(
+      id: 0,
+      ownerId: 0,
+      name: name,
+      address: address,
+      imageUrl: 'https://picsum.photos/600/300',
+    );
+
+    final success = await context.read<BoardingHouseProvider>().addBoardingHouse(bh);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kos berhasil ditambahkan!')),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menambahkan kos.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,18 +96,19 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
             _buildTextField('Nama Kos', _nameController),
             const SizedBox(height: 16),
             _buildTextField('Alamat Kos', _addressController),
-            const SizedBox(height: 16),
-            _buildTextField('Jumlah Kamar', _roomCountController, keyboardType: TextInputType.number),
             const SizedBox(height: 32),
             Center(
               child: SizedBox(
                 width: 150,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Save logic
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Simpan'),
+                  onPressed: _isLoading ? null : _save,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.lightBeige),
+                        )
+                      : const Text('Simpan'),
                 ),
               ),
             ),

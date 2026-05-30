@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"net/http"
+	"ruma/config"
 	"ruma/models"
 	"ruma/repositories"
+	"ruma/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,53 @@ func NewRoomController(roomRepo repositories.RoomRepository) *RoomController {
 }
 
 func (ctrl *RoomController) GetAllRooms(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	if role == "owner" {
+		// Ensure they have at least one boarding house (default)
+		_, err := utils.GetOrCreateDefaultBoardingHouse(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
+			return
+		}
+
+		var bhIDs []uint
+		if err := config.DB.Model(&models.BoardingHouse{}).Where("owner_id = ?", userID.(uint)).Pluck("id", &bhIDs).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch boarding houses"})
+			return
+		}
+
+		var rooms []models.Room
+		if len(bhIDs) > 0 {
+			if err := config.DB.Where("boarding_house_id IN ?", bhIDs).Find(&rooms).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
+				return
+			}
+		} else {
+			rooms = []models.Room{}
+		}
+		c.JSON(http.StatusOK, rooms)
+		return
+	} else if role == "tenant" {
+		tenant, err := utils.GetTenantByUserID(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Tenant record not found"})
+			return
+		}
+		var rooms []models.Room
+		var tenantRoom models.Room
+		if err := config.DB.First(&tenantRoom, tenant.RoomID).Error; err == nil {
+			config.DB.Where("boarding_house_id = ?", tenantRoom.BoardingHouseID).Find(&rooms)
+		}
+		if len(rooms) == 0 {
+			rooms = append(rooms, tenantRoom)
+		}
+		c.JSON(http.StatusOK, rooms)
+		return
+	}
+
+	// Fallback/Admin
 	rooms, err := ctrl.roomRepo.FindAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
@@ -28,19 +77,66 @@ func (ctrl *RoomController) GetAllRooms(c *gin.Context) {
 
 func (ctrl *RoomController) GetRoomByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
 	room, err := ctrl.roomRepo.FindByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
 		return
 	}
+
+	if role == "owner" {
+		var count int64
+		config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	} else if role == "tenant" {
+		tenant, err := utils.GetTenantByUserID(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+		var tenantRoom models.Room
+		if err := config.DB.First(&tenantRoom, tenant.RoomID).Error; err == nil {
+			if tenantRoom.BoardingHouseID != room.BoardingHouseID {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+		} else {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, room)
 }
 
 func (ctrl *RoomController) CreateRoom(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
 	var room models.Room
 	if err := c.ShouldBindJSON(&room); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if role == "owner" {
+		// Verify boarding house belongs to this owner
+		var bh models.BoardingHouse
+		err := config.DB.Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).First(&bh).Error
+		if err != nil {
+			// Fallback to their default boarding house
+			bhID, err := utils.GetOrCreateDefaultBoardingHouse(userID.(uint))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
+				return
+			}
+			room.BoardingHouseID = bhID
+		}
 	}
 
 	if err := ctrl.roomRepo.Create(&room); err != nil {
@@ -52,12 +148,39 @@ func (ctrl *RoomController) CreateRoom(c *gin.Context) {
 
 func (ctrl *RoomController) UpdateRoom(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	existingRoom, err := ctrl.roomRepo.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+		return
+	}
+
+	if role == "owner" {
+		var count int64
+		config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", existingRoom.BoardingHouseID, userID.(uint)).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
 	var room models.Room
 	if err := c.ShouldBindJSON(&room); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	room.ID = uint(id)
+
+	if role == "owner" {
+		var count int64
+		config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Selected boarding house access denied"})
+			return
+		}
+	}
 
 	if err := ctrl.roomRepo.Update(&room); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update room"})
@@ -68,6 +191,24 @@ func (ctrl *RoomController) UpdateRoom(c *gin.Context) {
 
 func (ctrl *RoomController) DeleteRoom(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	existingRoom, err := ctrl.roomRepo.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+		return
+	}
+
+	if role == "owner" {
+		var count int64
+		config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", existingRoom.BoardingHouseID, userID.(uint)).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
 	if err := ctrl.roomRepo.Delete(uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete room"})
 		return

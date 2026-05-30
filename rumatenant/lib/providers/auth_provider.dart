@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import '../core/api_client.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -11,6 +12,12 @@ class AuthProvider with ChangeNotifier {
 
   String? _token;
   String? get token => _token;
+
+  AuthProvider() {
+    ApiClient.onUnauthorized = () {
+      logout();
+    };
+  }
 
   Future<bool> login(String email, String password) async {
     _isLoading = true;
@@ -46,6 +53,20 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> checkAuth() async {
     _token = await _storage.read(key: 'token');
+    if (_token != null) {
+      try {
+        final response = await _apiClient.dio.get('/rooms');
+        if (response.statusCode != 200) {
+          await logout();
+        }
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 401) {
+          await logout();
+        }
+      } catch (e) {
+        print(e);
+      }
+    }
     notifyListeners();
   }
 }

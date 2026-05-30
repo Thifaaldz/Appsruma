@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/tenant_provider.dart';
+import 'providers/boarding_house_provider.dart';
+import 'providers/complaint_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'core/theme.dart';
@@ -14,6 +16,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkAuth()),
         ChangeNotifierProvider(create: (_) => RoomProvider()),
         ChangeNotifierProvider(create: (_) => TenantProvider()),
+        ChangeNotifierProvider(create: (_) => BoardingHouseProvider()),
+        ChangeNotifierProvider(create: (_) => ComplaintProvider()),
       ],
       child: const MyApp(),
     ),

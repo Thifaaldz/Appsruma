@@ -15,6 +15,7 @@ func SetupRoutes(r *gin.Engine) {
 	tenantRepo := repositories.NewTenantRepository()
 	paymentRepo := repositories.NewPaymentRepository()
 	complaintRepo := repositories.NewComplaintRepository()
+	bhRepo := repositories.NewBoardingHouseRepository()
 
 	authService := services.NewAuthService(userRepo)
 
@@ -23,6 +24,7 @@ func SetupRoutes(r *gin.Engine) {
 	tenantController := controllers.NewTenantController(tenantRepo)
 	paymentController := controllers.NewPaymentController(paymentRepo)
 	complaintController := controllers.NewComplaintController(complaintRepo)
+	bhController := controllers.NewBoardingHouseController(bhRepo)
 
 	api := r.Group("/api")
 	{
@@ -30,19 +32,35 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			auth.POST("/register", authController.Register)
 			auth.POST("/login", authController.Login)
+			auth.GET("/tenants", authController.GetTenantUsers)
 		}
 
 		// Protected routes
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// Boarding Houses
+			bhs := protected.Group("/boarding-houses")
+			{
+				bhs.GET("", bhController.GetMyBoardingHouses)
+				bhs.GET("/:id", bhController.GetBoardingHouseByID)
+
+				ownerOnly := bhs.Group("")
+				ownerOnly.Use(middleware.RoleMiddleware("owner", "admin"))
+				{
+					ownerOnly.POST("", bhController.CreateBoardingHouse)
+					ownerOnly.PUT("/:id", bhController.UpdateBoardingHouse)
+					ownerOnly.DELETE("/:id", bhController.DeleteBoardingHouse)
+				}
+			}
+
 			// Rooms
 			rooms := protected.Group("/rooms")
 			{
 				rooms.GET("", roomController.GetAllRooms)
 				rooms.GET("/:id", roomController.GetRoomByID)
 				
-				adminOnly := rooms.Group("/")
+				adminOnly := rooms.Group("")
 				adminOnly.Use(middleware.RoleMiddleware("owner", "admin"))
 				{
 					adminOnly.POST("", roomController.CreateRoom)
@@ -57,7 +75,7 @@ func SetupRoutes(r *gin.Engine) {
 				tenants.GET("", tenantController.GetAllTenants)
 				tenants.GET("/:id", tenantController.GetTenantByID)
 				
-				adminOnly := tenants.Group("/")
+				adminOnly := tenants.Group("")
 				adminOnly.Use(middleware.RoleMiddleware("owner", "admin"))
 				{
 					adminOnly.POST("", tenantController.CreateTenant)

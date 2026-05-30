@@ -1,11 +1,26 @@
 import 'package:flutter/material.dart';
+import '../models/tenant.dart';
+import '../models/room.dart';
+import '../models/boarding_house.dart';
 import '../core/theme.dart';
 
 class TenantDetailScreen extends StatelessWidget {
-  const TenantDetailScreen({super.key});
+  final Tenant tenant;
+  final Room room;
+  final BoardingHouse boardingHouse;
+
+  const TenantDetailScreen({
+    super.key,
+    required this.tenant,
+    required this.room,
+    required this.boardingHouse,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final checkInStr = '${tenant.checkInDate.day}-${tenant.checkInDate.month}-${tenant.checkInDate.year}';
+    final priceStr = 'Rp ${room.price.toStringAsFixed(0)}';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(''), // Empty, could have RUMA logo
@@ -36,15 +51,16 @@ class TenantDetailScreen extends StatelessWidget {
                     color: Colors.grey[300],
                     shape: BoxShape.circle,
                   ),
+                  child: const Icon(Icons.person, color: Colors.grey, size: 40),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rosita Samsulleika Putri', style: Theme.of(context).textTheme.titleLarge),
-                      const Text('Kos Anggrek | Kamar A1'),
-                      const Text('0812-7653-2261'),
+                      Text(tenant.userName ?? 'Nama Penyewa', style: Theme.of(context).textTheme.titleLarge),
+                      Text('${boardingHouse.name} | Kamar ${room.roomNumber}'),
+                      Text(tenant.phone),
                     ],
                   ),
                 )
@@ -54,25 +70,20 @@ class TenantDetailScreen extends StatelessWidget {
             Text('Informasi Penghuni', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _buildInfoCard([
-              _buildInfoRow('Nama Lengkap', 'Rosita Samsulleika Putri'),
-              _buildInfoRow('Nomor Handphone', '0812-7653-2261'),
-              _buildInfoRow('Email', 'rosita@example.com'),
-              _buildInfoRow('Jenis Kelamin', 'Perempuan'),
+              _buildInfoRow('Nama Lengkap', tenant.userName ?? '-'),
+              _buildInfoRow('Nomor Handphone', tenant.phone),
+              _buildInfoRow('Email', tenant.userEmail ?? '-'),
+              _buildInfoRow('Jenis Kelamin', tenant.gender.isNotEmpty ? tenant.gender : '-'),
+              _buildInfoRow('Tanggal Masuk', checkInStr),
             ]),
             const SizedBox(height: 24),
             Text('Informasi Kamar', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _buildInfoCard([
-              _buildInfoRow('Nama Kosan', 'Kos Anggrek'),
-              _buildInfoRow('Nomor Kamar', 'A1'),
-              _buildInfoRow('Harga Kamar', 'Rp. 1.500.000'),
+              _buildInfoRow('Nama Kosan', boardingHouse.name),
+              _buildInfoRow('Nomor Kamar', room.roomNumber),
+              _buildInfoRow('Harga Kamar', priceStr),
               _buildInfoRow('Status Kamar', 'Terisi', isLink: true),
-            ]),
-            const SizedBox(height: 24),
-            Text('Riwayat Keluhan', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _buildInfoCard([
-              _buildInfoRow('Daftar Keluhan', '', isLink: true),
             ]),
           ],
         ),

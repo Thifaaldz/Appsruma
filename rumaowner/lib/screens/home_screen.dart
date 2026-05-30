@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/boarding_house_provider.dart';
+import '../models/boarding_house.dart';
 import '../core/theme.dart';
 import 'property_detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        context.read<BoardingHouseProvider>().fetchBoardingHouses();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Mock data for properties
-    final List<Map<String, dynamic>> properties = [
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/300'},
-      {'name': 'Kosan Rajeg', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/301'},
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/302'},
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/303'},
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/304'},
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/305'},
-      {'name': 'Kosan Anggrek', 'total': 7, 'vacant': 3, 'image': 'https://picsum.photos/400/306'},
-    ];
+    final bhProvider = context.watch<BoardingHouseProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -28,33 +38,70 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, size: 32),
-            onPressed: () {},
-          )
+            onSelected: (value) async {
+              if (value == 'logout') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Keluar'),
+                    content: const Text('Apakah Anda yakin ingin keluar?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Batal'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Keluar'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true && context.mounted) {
+                  await Provider.of<AuthProvider>(context, listen: false).logout();
+                }
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: AppTheme.textDark),
+                    SizedBox(width: 8),
+                    Text('Keluar'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16.0),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.8,
-        ),
-        itemCount: properties.length + 1, // +1 for "Tambah Kosan"
-        itemBuilder: (context, index) {
-          if (index == properties.length) {
-            return _buildAddButton(context);
-          }
-          final property = properties[index];
-          return _buildPropertyCard(context, property);
-        },
-      ),
+      body: bhProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: const EdgeInsets.all(16.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: bhProvider.boardingHouses.length + 1, // +1 for "Tambah Kosan"
+              itemBuilder: (context, index) {
+                if (index == bhProvider.boardingHouses.length) {
+                  return _buildAddButton(context);
+                }
+                final bh = bhProvider.boardingHouses[index];
+                return _buildPropertyCard(context, bh);
+              },
+            ),
     );
   }
 
-  Widget _buildPropertyCard(BuildContext context, Map<String, dynamic> property) {
+  Widget _buildPropertyCard(BuildContext context, BoardingHouse bh) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.cardWhite,
@@ -67,16 +114,25 @@ class HomeScreen extends StatelessWidget {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                property['image'],
-                fit: BoxFit.cover,
-                width: double.infinity,
-              ),
+              child: bh.imageUrl.isNotEmpty
+                  ? Image.network(
+                      bh.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.home, size: 48, color: Colors.grey),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.home, size: 48, color: Colors.grey),
+                    ),
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            property['name'],
+            bh.name,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -85,8 +141,8 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildBadge('${property['total']} Kamar', AppTheme.lightBeige, AppTheme.textDark),
-              _buildBadge('${property['vacant']} Kosong', AppTheme.statusRedBg, AppTheme.statusRedText),
+              _buildBadge('${bh.totalRooms} Kamar', AppTheme.lightBeige, AppTheme.textDark),
+              _buildBadge('${bh.vacantRooms} Kosong', AppTheme.statusRedBg, AppTheme.statusRedText),
             ],
           ),
         ],

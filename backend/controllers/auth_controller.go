@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"ruma/config"
 	"ruma/models"
 	"ruma/services"
 
@@ -14,6 +15,15 @@ type AuthController struct {
 
 func NewAuthController(authService services.AuthService) *AuthController {
 	return &AuthController{authService: authService}
+}
+
+func (ctrl *AuthController) GetTenantUsers(c *gin.Context) {
+	var users []models.User
+	if err := config.DB.Where("role = ?", "tenant").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+		return
+	}
+	c.JSON(http.StatusOK, users)
 }
 
 func (ctrl *AuthController) Register(c *gin.Context) {
