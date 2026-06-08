@@ -19,7 +19,9 @@ class TenantProvider with ChangeNotifier {
     try {
       final response = await _apiClient.dio.get('/tenants');
       if (response.statusCode == 200) {
-        _tenants = (response.data as List).map((e) => Tenant.fromJson(e)).toList();
+        _tenants = (response.data as List)
+            .map((e) => Tenant.fromJson(e))
+            .toList();
       }
     } catch (e) {
       print('Fetch tenants error: $e');
@@ -43,7 +45,10 @@ class TenantProvider with ChangeNotifier {
 
   Future<bool> addTenant(Tenant tenant) async {
     try {
-      final response = await _apiClient.dio.post('/tenants', data: tenant.toJson());
+      final response = await _apiClient.dio.post(
+        '/tenants',
+        data: tenant.toJson(),
+      );
       if (response.statusCode == 201) {
         await fetchTenants();
         return true;

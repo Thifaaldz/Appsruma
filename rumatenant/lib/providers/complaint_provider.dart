@@ -17,7 +17,9 @@ class ComplaintProvider with ChangeNotifier {
     try {
       final response = await _apiClient.dio.get('/complaints');
       if (response.statusCode == 200) {
-        _complaints = (response.data as List).map((e) => Complaint.fromJson(e)).toList();
+        _complaints = (response.data as List)
+            .map((e) => Complaint.fromJson(e))
+            .toList();
       }
     } catch (e) {
       print(e);
@@ -29,7 +31,10 @@ class ComplaintProvider with ChangeNotifier {
 
   Future<bool> addComplaint(Complaint complaint) async {
     try {
-      final response = await _apiClient.dio.post('/complaints', data: complaint.toJson());
+      final response = await _apiClient.dio.post(
+        '/complaints',
+        data: complaint.toJson(),
+      );
       if (response.statusCode == 201) {
         await fetchComplaints();
         return true;

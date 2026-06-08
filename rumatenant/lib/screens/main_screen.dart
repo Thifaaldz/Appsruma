@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'complaint_screen.dart';
-import 'room_info_screen.dart';
+
 import '../core/theme.dart';
+import '../widgets/tenant_widgets.dart';
+import 'complaint_screen.dart';
+import 'history_screen.dart';
+import 'home_screen.dart';
+import 'notification_screen.dart';
+import 'payment_screen.dart';
+import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,13 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    RoomInfoScreen(),
-    ComplaintScreen(),
-  ];
-
-  void _onItemTapped(int index) {
+  void _navigateTo(int index) {
     setState(() {
       _selectedIndex = index;
     });
@@ -28,55 +27,29 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: Container(
-        color: AppTheme.darkOlive,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Beranda', 0),
-              _buildNavItem(Icons.bed, 'Kamar', 1),
-              _buildNavItem(Icons.report_problem, 'Keluhan', 2),
-            ],
-          ),
-        ),
+    final pages = <Widget>[
+      HomeScreen(
+        onPayNow: () => _navigateTo(1),
+        onOpenHistory: () => _navigateTo(3),
       ),
-    );
-  }
+      const PaymentScreen(),
+      const NotificationScreen(),
+      const HistoryScreen(),
+      ProfileScreen(
+        onOpenComplaint: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ComplaintScreen()));
+        },
+      ),
+    ];
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.lightBeige : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppTheme.darkOlive : AppTheme.lightBeige,
-              size: 24,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: AppTheme.darkOlive,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: AppTheme.lightBeige,
+      body: IndexedStack(index: _selectedIndex, children: pages),
+      bottomNavigationBar: RumaBottomNav(
+        currentIndex: _selectedIndex,
+        onTap: _navigateTo,
       ),
     );
   }

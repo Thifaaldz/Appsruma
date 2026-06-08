@@ -6,9 +6,12 @@ import '../core/api_client.dart';
 class AuthProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   final _storage = const FlutterSecureStorage();
-  
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  bool _isChecking = true;
+  bool get isChecking => _isChecking;
 
   String? _token;
   String? get token => _token;
@@ -24,10 +27,10 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.post('/auth/login', data: {
-        'email': email,
-        'password': password,
-      });
+      final response = await _apiClient.dio.post(
+        '/auth/login',
+        data: {'email': email, 'password': password},
+      );
 
       if (response.statusCode == 200) {
         _token = response.data['token'];
@@ -52,6 +55,9 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> checkAuth() async {
+    _isChecking = true;
+    notifyListeners();
+
     _token = await _storage.read(key: 'token');
     if (_token != null) {
       try {
@@ -67,6 +73,7 @@ class AuthProvider with ChangeNotifier {
         print(e);
       }
     }
+    _isChecking = false;
     notifyListeners();
   }
 }

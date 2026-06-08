@@ -39,6 +39,9 @@ func SetupRoutes(r *gin.Engine) {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			protected.GET("/auth/me", authController.GetMe)
+			protected.PUT("/auth/me", authController.UpdateMe)
+
 			// Boarding Houses
 			bhs := protected.Group("/boarding-houses")
 			{
@@ -49,6 +52,7 @@ func SetupRoutes(r *gin.Engine) {
 				ownerOnly.Use(middleware.RoleMiddleware("owner", "admin"))
 				{
 					ownerOnly.POST("", bhController.CreateBoardingHouse)
+					ownerOnly.POST("/:id", bhController.UpdateBoardingHouse)
 					ownerOnly.PUT("/:id", bhController.UpdateBoardingHouse)
 					ownerOnly.DELETE("/:id", bhController.DeleteBoardingHouse)
 				}
@@ -59,7 +63,7 @@ func SetupRoutes(r *gin.Engine) {
 			{
 				rooms.GET("", roomController.GetAllRooms)
 				rooms.GET("/:id", roomController.GetRoomByID)
-				
+
 				adminOnly := rooms.Group("")
 				adminOnly.Use(middleware.RoleMiddleware("owner", "admin"))
 				{
@@ -74,7 +78,7 @@ func SetupRoutes(r *gin.Engine) {
 			{
 				tenants.GET("", tenantController.GetAllTenants)
 				tenants.GET("/:id", tenantController.GetTenantByID)
-				
+
 				adminOnly := tenants.Group("")
 				adminOnly.Use(middleware.RoleMiddleware("owner", "admin"))
 				{

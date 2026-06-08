@@ -136,6 +136,13 @@ func (ctrl *RoomController) CreateRoom(c *gin.Context) {
 				return
 			}
 			room.BoardingHouseID = bhID
+			if err := config.DB.First(&bh, bhID).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load default boarding house"})
+				return
+			}
+		}
+		if room.UseDefaultPrice {
+			room.Price = bh.DefaultRoomPrice
 		}
 	}
 
@@ -174,15 +181,26 @@ func (ctrl *RoomController) UpdateRoom(c *gin.Context) {
 	room.ID = uint(id)
 
 	if role == "owner" {
-		var count int64
-		config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).Count(&count)
-		if count == 0 {
+		var bh models.BoardingHouse
+		if err := config.DB.Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).First(&bh).Error; err != nil {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Selected boarding house access denied"})
 			return
 		}
+		if room.UseDefaultPrice {
+			room.Price = bh.DefaultRoomPrice
+		}
 	}
 
-	if err := ctrl.roomRepo.Update(&room); err != nil {
+	if err := config.DB.Model(&models.Room{}).
+		Where("id = ?", uint(id)).
+		Updates(map[string]interface{}{
+			"boarding_house_id": room.BoardingHouseID,
+			"room_number":       room.RoomNumber,
+			"price":             room.Price,
+			"status":            room.Status,
+			"use_default_price": room.UseDefaultPrice,
+			"image_urls":        room.ImageUrls,
+		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update room"})
 		return
 	}

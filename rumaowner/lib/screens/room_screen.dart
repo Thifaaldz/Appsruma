@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/room_provider.dart';
-import '../providers/boarding_house_provider.dart';
-import '../models/room.dart';
-import '../models/boarding_house.dart';
+
 import '../core/theme.dart';
+import '../models/boarding_house.dart';
+import '../models/room.dart';
+import '../providers/boarding_house_provider.dart';
+import '../providers/room_provider.dart';
+import '../widgets/owner_widgets.dart';
+import 'property_detail_screen.dart';
+import 'room_form_screen.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({super.key});
@@ -14,299 +18,544 @@ class RoomScreen extends StatefulWidget {
 }
 
 class _RoomScreenState extends State<RoomScreen> {
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      if (mounted) {
-        context.read<RoomProvider>().fetchRooms();
-        context.read<BoardingHouseProvider>().fetchBoardingHouses();
-      }
+      if (!mounted) return;
+      context.read<RoomProvider>().fetchRooms();
+      context.read<BoardingHouseProvider>().fetchBoardingHouses();
     });
   }
 
-  void _showAddRoomDialog(BuildContext context, List<BoardingHouse> boardingHouses) {
-    if (boardingHouses.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Kosan Belum Ada'),
-          content: const Text('Silakan buat Kosan terlebih dahulu di Tab Beranda.'),
+  void _openAddBoardingHouse() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PropertyDetailScreen()),
+    );
+  }
+
+  void _openEditBoardingHouse(BoardingHouse house) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PropertyDetailScreen(boardingHouse: house),
+      ),
+    );
+  }
+
+  void _openAddRoom() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RoomFormScreen()),
+    );
+  }
+
+  void _openEditRoom(Room room) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => RoomFormScreen(room: room)),
+    );
+  }
+
+  Future<void> _confirmDeleteBoardingHouse(BoardingHouse house) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Hapus Kosan?'),
+          content: Text(
+            'Kos "${house.name}" akan dihapus dari daftar. Pastikan data ini memang sudah tidak dipakai.',
+          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            )
-          ],
-        ),
-      );
-      return;
-    }
-
-    final roomNumberController = TextEditingController();
-    final priceController = TextEditingController();
-    BoardingHouse selectedBH = boardingHouses.first;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Tambah Kamar Baru'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<BoardingHouse>(
-                      value: selectedBH,
-                      decoration: const InputDecoration(labelText: 'Pilih Kosan'),
-                      items: boardingHouses.map((bh) {
-                        return DropdownMenuItem(
-                          value: bh,
-                          child: Text(bh.name),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() {
-                            selectedBH = val;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: roomNumberController,
-                      decoration: const InputDecoration(labelText: 'Nomor Kamar (contoh: A1)'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: priceController,
-                      decoration: const InputDecoration(labelText: 'Harga Sewa (Bulanan)'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-                ),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Batal'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final num = roomNumberController.text.trim();
-                    final priceVal = double.tryParse(priceController.text.trim()) ?? 0;
-
-                    if (num.isEmpty || priceVal <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Isi nomor kamar dan harga dengan benar!')),
-                      );
-                      return;
-                    }
-
-                    final room = Room(
-                      id: 0,
-                      boardingHouseId: selectedBH.id,
-                      roomNumber: num,
-                      price: priceVal,
-                      status: 'available',
-                    );
-
-                    final success = await context.read<RoomProvider>().addRoom(room);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Kamar berhasil ditambahkan!' : 'Gagal menambahkan kamar.'),
-                        ),
-                      );
-                      // Refresh homescreen to update room counts
-                      context.read<BoardingHouseProvider>().fetchBoardingHouses();
-                    }
-                  },
-                  child: const Text('Tambah'),
-                ),
-              ],
-            );
-          },
+              child: const Text('Hapus'),
+            ),
+          ],
         );
       },
     );
+
+    if (confirmed != true || !mounted) return;
+
+    final success = await context
+        .read<BoardingHouseProvider>()
+        .deleteBoardingHouse(house.id);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Kosan berhasil dihapus.' : 'Gagal menghapus kosan.',
+        ),
+      ),
+    );
+  }
+
+  String _houseNameForRoom(int boardingHouseId, List<BoardingHouse> houses) {
+    final house = houses.where((item) => item.id == boardingHouseId).toList();
+    if (house.isNotEmpty) return house.first.name;
+    return 'Kosan #$boardingHouseId';
   }
 
   @override
   Widget build(BuildContext context) {
-    final roomProvider = context.watch<RoomProvider>();
     final bhProvider = context.watch<BoardingHouseProvider>();
+    final roomProvider = context.watch<RoomProvider>();
 
-    final filteredRooms = roomProvider.rooms.where((room) {
-      return room.roomNumber.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final boardingHouses = bhProvider.boardingHouses;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(''), // Empty, could have RUMA logo
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Image.asset(
-                'assets/RUMA LOGO 1.png',
-                height: 32,
-                color: AppTheme.darkOlive,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    final rooms = List<Room>.from(roomProvider.rooms)
+      ..sort((a, b) {
+        final houseCompare = a.boardingHouseId.compareTo(b.boardingHouseId);
+        if (houseCompare != 0) return houseCompare;
+        return a.roomNumber.compareTo(b.roomNumber);
+      });
+
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton.icon(
-              onPressed: () => _showAddRoomDialog(context, bhProvider.boardingHouses),
-              icon: const Icon(Icons.add),
-              label: const Text('Tambah Kamar'),
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : const Icon(Icons.filter_list, color: Colors.grey),
-                filled: true,
-                fillColor: AppTheme.cardWhite,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _openAddBoardingHouse,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkOlive,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '+ Tambah Kosan',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.lightBeige,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _openAddRoom,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Text(
+                        '+ Tambah Kamar',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.textDark,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: roomProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredRooms.isEmpty
-                      ? const Center(child: Text('Tidak ada kamar ditemukan.'))
-                      : ListView.separated(
-                          itemCount: filteredRooms.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final room = filteredRooms[index];
-                            final isOccupied = room.status == 'occupied';
-
-                            // Find corresponding boarding house name
-                            final bh = bhProvider.boardingHouses.firstWhere(
-                              (b) => b.id == room.boardingHouseId,
-                              orElse: () => BoardingHouse(id: 0, ownerId: 0, name: 'Kos Anda', address: '', imageUrl: ''),
-                            );
-
-                            return Container(
+            const SizedBox(height: 14),
+            if (boardingHouses.isEmpty)
+              OwnerPanel(
+                child: Text(
+                  bhProvider.isLoading
+                      ? 'Memuat data kos...'
+                      : bhProvider.lastError?.isNotEmpty == true
+                      ? 'Gagal memuat data kos: ${bhProvider.lastError}'
+                      : 'Belum ada kos. Gunakan tombol + Tambah Kosan.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: boardingHouses.length + 1,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 0.68,
+                ),
+                itemBuilder: (context, index) {
+                  if (index == boardingHouses.length) {
+                    return GestureDetector(
+                      onTap: _openAddBoardingHouse,
+                      child: OwnerPanel(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 54,
+                              height: 54,
                               decoration: BoxDecoration(
-                                color: AppTheme.cardWhite,
-                                borderRadius: BorderRadius.circular(16),
+                                color: AppTheme.olive,
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: isOccupied ? AppTheme.statusGreenBg : Colors.grey[300],
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.meeting_room,
-                                      color: isOccupied ? AppTheme.darkOlive : Colors.grey[600],
-                                      size: 30,
-                                    ),
+                              child: const Icon(
+                                Icons.add,
+                                color: AppTheme.lightBeige,
+                                size: 34,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              'Tambah Kosan',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Kamar ${room.roomNumber}',
-                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
-                                        ),
-                                        Text(
-                                          bh.name,
-                                          style: Theme.of(context).textTheme.titleMedium,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.info_outline, size: 14),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              isOccupied ? 'Aktif' : 'Tersedia',
-                                              style: const TextStyle(fontSize: 12),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final house = boardingHouses[index];
+                  final houseImages = house.imageUrls.isNotEmpty
+                      ? house.imageUrls
+                      : [
+                          house.imageUrl.isNotEmpty
+                              ? house.imageUrl
+                              : 'https://picsum.photos/seed/${house.name}/500/360',
+                        ];
+                  final roomsForHouse = roomProvider.rooms
+                      .where((room) => room.boardingHouseId == house.id)
+                      .toList();
+                  final totalRooms = house.totalRooms > 0
+                      ? house.totalRooms
+                      : roomsForHouse.length;
+                  final vacantRooms = house.vacantRooms > 0
+                      ? house.vacantRooms
+                      : roomsForHouse
+                            .where(
+                              (room) =>
+                                  room.status.toLowerCase() == 'available',
+                            )
+                            .length;
+
+                  return GestureDetector(
+                    onTap: () => _openEditBoardingHouse(house),
+                    child: OwnerPanel(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: OwnerImageSlideshow(
+                                    images: houseImages,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    borderRadius: 10,
+                                    fit: BoxFit.cover,
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                ),
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isOccupied ? AppTheme.statusGreenBg : AppTheme.statusRedBg,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          isOccupied ? 'Terisi' : 'Kosong',
-                                          style: TextStyle(
-                                            color: isOccupied ? AppTheme.statusGreenText : AppTheme.statusRedText,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                      _CardIconButton(
+                                        icon: Icons.edit,
+                                        backgroundColor: AppTheme.navButton,
+                                        iconColor: AppTheme.darkOlive,
+                                        onTap: () =>
+                                            _openEditBoardingHouse(house),
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Rp ${room.price.toStringAsFixed(0)}',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      const SizedBox(width: 6),
+                                      _CardIconButton(
+                                        icon: Icons.delete_outline,
+                                        backgroundColor: const Color(
+                                          0xFFF8D7DA,
+                                        ),
+                                        iconColor: const Color(0xFFB23A48),
+                                        onTap: () =>
+                                            _confirmDeleteBoardingHouse(house),
                                       ),
                                     ],
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            house.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.displayLarge
+                                ?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              _CountBadge(
+                                text: '$totalRooms Kamar',
+                                backgroundColor: const Color(0xFFF1DDB6),
+                                textColor: const Color(0xFF534A2A),
+                              ),
+                              _CountBadge(
+                                text: '$vacantRooms Kosong',
+                                backgroundColor: const Color(0xFFB93C3C),
+                                textColor: Colors.white,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Default biaya: Rp ${house.defaultRoomPrice.toStringAsFixed(0)}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontSize: 11,
+                                  color: AppTheme.textSecondary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            const SizedBox(height: 20),
+            OwnerSectionTitle(title: 'Daftar Kamar'),
+            const SizedBox(height: 10),
+            if (rooms.isEmpty)
+              OwnerPanel(
+                child: Text(
+                  'Belum ada kamar yang ditambahkan. Gunakan tombol + Tambah Kamar.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: rooms.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final room = rooms[index];
+                  final houseName = _houseNameForRoom(
+                    room.boardingHouseId,
+                    boardingHouses,
+                  );
+                  final house = boardingHouses
+                      .where((item) => item.id == room.boardingHouseId)
+                      .toList();
+                  final List<String> houseImages = house.isNotEmpty
+                      ? (house.first.imageUrls.isNotEmpty
+                            ? house.first.imageUrls
+                            : house.first.imageUrl.isNotEmpty
+                            ? [house.first.imageUrl]
+                            : <String>[])
+                      : <String>[];
+                  final isOccupied = room.status.toLowerCase() == 'occupied';
+
+                  return OwnerPanel(
+                    child: Row(
+                      children: [
+                        if (houseImages.isNotEmpty)
+                          OwnerImageSlideshow(
+                            images: houseImages,
+                            width: 66,
+                            height: 66,
+                            borderRadius: 14,
+                            fit: BoxFit.cover,
+                          )
+                        else
+                          Container(
+                            width: 66,
+                            height: 66,
+                            decoration: BoxDecoration(
+                              color: isOccupied
+                                  ? const Color(0xFFB93C3C)
+                                  : AppTheme.olive,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: Text(
+                                room.roomNumber,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Kamar ${room.roomNumber}',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                houseName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppTheme.textSecondary),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  OwnerStatusChip(
+                                    label: isOccupied ? 'Terisi' : 'Kosong',
+                                    backgroundColor: isOccupied
+                                        ? const Color(0xFFF8D7DA)
+                                        : const Color(0xFFE4F1E8),
+                                    textColor: isOccupied
+                                        ? const Color(0xFFB23A48)
+                                        : const Color(0xFF2F6B40),
+                                  ),
+                                  Text(
+                                    'Rp ${room.price.toStringAsFixed(0)} / bulan',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
                                 ],
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
-            ),
+                        IconButton(
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () => _openEditRoom(room),
+                          icon: const Icon(Icons.edit, color: AppTheme.olive),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({
+    required this.text,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String text;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _CardIconButton extends StatelessWidget {
+  const _CardIconButton({
+    required this.icon,
+    required this.backgroundColor,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color backgroundColor;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: Icon(icon, size: 16, color: iconColor),
         ),
       ),
     );

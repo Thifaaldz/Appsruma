@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/complaint_provider.dart';
-import '../models/complaint.dart';
+
 import '../core/theme.dart';
+import '../data/tenant_design_data.dart';
+import '../models/complaint.dart';
+import '../providers/complaint_provider.dart';
+import '../widgets/tenant_widgets.dart';
 
 class ComplaintScreen extends StatefulWidget {
   const ComplaintScreen({super.key});
@@ -12,8 +15,9 @@ class ComplaintScreen extends StatefulWidget {
 }
 
 class _ComplaintScreenState extends State<ComplaintScreen> {
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
+  final _descriptionController = TextEditingController();
+  String _activeTab = 'Buat Laporan';
+  String _selectedCategory = 'AC';
 
   @override
   void initState() {
@@ -25,281 +29,420 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     });
   }
 
-  void _showAddComplaintDialog() {
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkOlive,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.report_problem, color: AppTheme.lightBeige, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text('Buat Keluhan'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Judul Keluhan',
-                    hintText: 'contoh: AC Rusak',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Deskripsi',
-                    hintText: 'Jelaskan keluhan Anda...',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final title = titleController.text.trim();
-                final desc = descController.text.trim();
-
-                if (title.isEmpty || desc.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Judul dan deskripsi harus diisi!')),
-                  );
-                  return;
-                }
-
-                final complaint = Complaint(
-                  id: 0,
-                  tenantId: 0, // Backend auto-fills based on JWT
-                  title: title,
-                  description: desc,
-                  status: 'pending',
-                );
-
-                final success = await context.read<ComplaintProvider>().addComplaint(complaint);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(success ? 'Keluhan berhasil dikirim!' : 'Gagal mengirim keluhan.'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Kirim'),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final complaintProvider = context.watch<ComplaintProvider>();
-
-    final filteredComplaints = complaintProvider.complaints.where((c) {
-      return c.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          c.description.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final complaintItems = complaintProvider.complaints.isNotEmpty
+        ? complaintProvider.complaints
+              .map(
+                (complaint) => ComplaintHistoryItem(
+                  title: complaint.title,
+                  subtitle: complaint.description,
+                  status: _mapStatus(complaint.status),
+                  statusColor: _statusBackground(complaint.status),
+                  statusTextColor: _statusTextColor(complaint.status),
+                  date: 'Hari ini',
+                ),
+              )
+              .toList()
+        : TenantDesignData.complaintHistory;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(''),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Image.asset(
-                'assets/RUMA LOGO 1.png',
-                height: 32,
-                color: AppTheme.darkOlive,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Text('RUMA', style: TextStyle(fontWeight: FontWeight.bold));
-                },
+      backgroundColor: AppTheme.lightBeige,
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const RumaBrandLogo(height: 22),
+              const SizedBox(height: 34),
+              const RumaPageTitle(title: 'Bantuan dan Keluhan'),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _TopTabButton(
+                      label: 'Buat Laporan',
+                      selected: _activeTab == 'Buat Laporan',
+                      onTap: () => setState(() => _activeTab = 'Buat Laporan'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TopTabButton(
+                      label: 'Riwayat Laporan',
+                      selected: _activeTab == 'Riwayat Laporan',
+                      onTap: () =>
+                          setState(() => _activeTab = 'Riwayat Laporan'),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Keluhan Saya',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
-            ),
-            const SizedBox(height: 16),
-            // Search bar
-            TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Cari Keluhan',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppTheme.cardWhite,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+              const SizedBox(height: 18),
+              if (_activeTab == 'Buat Laporan') ...[
+                Text(
+                  'Kategori',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: complaintProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredComplaints.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.inbox, size: 64, color: Colors.grey[300]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Belum ada keluhan.',
-                                style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedCategory,
+                      isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                      items: const [
+                        DropdownMenuItem(value: 'AC', child: Text('AC')),
+                        DropdownMenuItem(value: 'Lampu', child: Text('Lampu')),
+                        DropdownMenuItem(value: 'Air', child: Text('Air')),
+                        DropdownMenuItem(
+                          value: 'Keamanan',
+                          child: Text('Keamanan'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _selectedCategory = value);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Deskripsi',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 116,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: TextField(
+                    controller: _descriptionController,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                      hintText: '',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                RumaPanel(
+                  backgroundColor: const Color(0xFFF8F0E0),
+                  borderColor: const Color(0xFFE7DABF),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Foto',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 160,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD9D9D9),
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tekan + untuk membuat keluhan baru.',
-                                style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                              ),
-                            ],
+                            ),
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: () => complaintProvider.fetchComplaints(),
-                          child: ListView.separated(
-                            itemCount: filteredComplaints.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final complaint = filteredComplaints[index];
-                              return _buildComplaintCard(context, complaint);
-                            },
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Container(
+                              height: 160,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD9D9D9),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Tambah Foto',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        color: AppTheme.olive,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                RumaPrimaryButton(
+                  label: 'Kirim Laporan',
+                  onPressed: () async {
+                    final description = _descriptionController.text.trim();
+                    if (description.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Deskripsi harus diisi.')),
+                      );
+                      return;
+                    }
+
+                    final success = await context
+                        .read<ComplaintProvider>()
+                        .addComplaint(
+                          Complaint(
+                            id: 0,
+                            tenantId: 0,
+                            title: _selectedCategory,
+                            description: description,
+                            status: 'pending',
+                          ),
+                        );
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? 'Laporan berhasil dikirim.'
+                                : 'Laporan gagal dikirim.',
                           ),
                         ),
-            ),
-          ],
+                      );
+                      if (success) {
+                        _descriptionController.clear();
+                        setState(() => _activeTab = 'Riwayat Laporan');
+                      }
+                    }
+                  },
+                ),
+                const SizedBox(height: 18),
+                const RumaSectionHeader(title: 'Butuh bantuan cepat?'),
+                const SizedBox(height: 8),
+                RumaPanel(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.chat_bubble_outline,
+                        color: AppTheme.textDark,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Chat Admin',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Hubungi pengelola kos langsung',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.textDark,
+                                    fontSize: 13,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                RumaPanel(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: complaintItems.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      return Column(
+                        children: [
+                          _ComplaintHistoryRow(item: item),
+                          if (index != complaintItems.length - 1)
+                            const Divider(height: 1),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.darkOlive,
-        foregroundColor: AppTheme.lightBeige,
-        onPressed: _showAddComplaintDialog,
-        child: const Icon(Icons.add),
+      bottomNavigationBar: RumaBottomNav(
+        currentIndex: 0,
+        onTap: (_) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        },
       ),
     );
   }
 
-  Widget _buildComplaintCard(BuildContext context, Complaint complaint) {
-    final status = complaint.status;
-
-    Color statusBgColor = AppTheme.statusRedBg;
-    String displayStatus = 'Belum diproses';
-    IconData statusIcon = Icons.pending;
-
-    if (status == 'Done' || status == 'done') {
-      statusBgColor = AppTheme.statusGreenBg;
-      displayStatus = 'Selesai';
-      statusIcon = Icons.check_circle;
-    } else if (status == 'Sedang di proses' || status == 'process') {
-      statusBgColor = AppTheme.statusBlueBg;
-      displayStatus = 'Sedang diproses';
-      statusIcon = Icons.autorenew;
+  String _mapStatus(String status) {
+    final normalized = status.toLowerCase();
+    if (normalized.contains('done') || normalized.contains('selesai')) {
+      return 'Selesai';
     }
+    if (normalized.contains('process') || normalized.contains('proses')) {
+      return 'Diproses';
+    }
+    return 'Menunggu';
+  }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardWhite,
-        borderRadius: BorderRadius.circular(16),
+  Color _statusBackground(String status) {
+    final normalized = status.toLowerCase();
+    if (normalized.contains('done') || normalized.contains('selesai')) {
+      return AppTheme.statusGreenBg;
+    }
+    if (normalized.contains('process') || normalized.contains('proses')) {
+      return AppTheme.statusBlueBg;
+    }
+    return AppTheme.statusYellowBg;
+  }
+
+  Color _statusTextColor(String status) {
+    final normalized = status.toLowerCase();
+    if (normalized.contains('done') || normalized.contains('selesai')) {
+      return AppTheme.statusGreenText;
+    }
+    if (normalized.contains('process') || normalized.contains('proses')) {
+      return AppTheme.statusBlueText;
+    }
+    return AppTheme.statusYellowText;
+  }
+}
+
+class _TopTabButton extends StatelessWidget {
+  const _TopTabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.olive : const Color(0xFFD9D9D9),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? AppTheme.olive : const Color(0xFFD9D9D9),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: selected ? Colors.white : AppTheme.textDark,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
       ),
-      padding: const EdgeInsets.all(16),
+    );
+  }
+}
+
+class _ComplaintHistoryRow extends StatelessWidget {
+  const _ComplaintHistoryRow({required this.item});
+
+  final ComplaintHistoryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              color: statusBgColor,
-              shape: BoxShape.circle,
+              color: item.statusColor,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(statusIcon, color: AppTheme.textDark, size: 24),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  complaint.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
+                  item.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  complaint.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  item.subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textDark,
+                    fontSize: 12,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusBgColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      displayStatus,
-                      style: const TextStyle(
-                        color: AppTheme.textDark,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const SizedBox(height: 2),
+                Text(
+                  item.date,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textMuted,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
+          ),
+          RumaStatusChip(
+            label: item.status,
+            backgroundColor: item.statusColor,
+            textColor: item.statusTextColor,
           ),
         ],
       ),

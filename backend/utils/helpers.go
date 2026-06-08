@@ -11,10 +11,12 @@ func GetOrCreateDefaultBoardingHouse(ownerID uint) (uint, error) {
 	err := config.DB.Where("owner_id = ?", ownerID).First(&bh).Error
 	if err == gorm.ErrRecordNotFound {
 		bh = models.BoardingHouse{
-			OwnerID:  ownerID,
-			Name:     "Kosan Saya",
-			Address:  "Alamat Kosan",
-			ImageUrl: "https://picsum.photos/400/300",
+			OwnerID:          ownerID,
+			Name:             "Kosan Saya",
+			Address:          "Alamat Kosan",
+			ImageUrl:         "https://picsum.photos/400/300",
+			ImageUrls:        models.StringList{"https://picsum.photos/400/300"},
+			DefaultRoomPrice: 1500000,
 		}
 		if err := config.DB.Create(&bh).Error; err != nil {
 			return 0, err

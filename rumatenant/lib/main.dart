@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/complaint_provider.dart';
 import 'core/theme.dart';
+import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 
@@ -24,16 +25,63 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RUMA Penghuni',
+      title: 'RUMA Tenant',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          if (auth.token != null) {
-            return const MainScreen();
-          }
-          return const LoginScreen();
-        },
+      home: const StartupGate(),
+    );
+  }
+}
+
+class StartupGate extends StatefulWidget {
+  const StartupGate({super.key});
+
+  @override
+  State<StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<StartupGate> {
+  bool _allowTransition = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1300), () {
+        if (!mounted) return;
+        setState(() => _allowTransition = true);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final showTarget = _allowTransition && !auth.isChecking;
+    final child = showTarget
+        ? (auth.token != null ? const MainScreen() : const LoginScreen())
+        : const SplashScreen();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 550),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        final slide = Tween<Offset>(
+          begin: const Offset(0, 0.06),
+          end: Offset.zero,
+        ).animate(fade);
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(position: slide, child: child),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<String>(
+          showTarget ? (auth.token != null ? 'main' : 'login') : 'splash',
+        ),
+        child: child,
       ),
     );
   }

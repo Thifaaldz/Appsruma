@@ -119,9 +119,12 @@ func (ctrl *TenantController) CreateTenant(c *gin.Context) {
 
 	var req CreateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		println("CreateTenant ShouldBindJSON error:", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	println("CreateTenant request parsed successfully, UserID:", req.UserID, "RoomID:", req.RoomID, "Name:", req.Name, "Email:", req.Email)
 
 	if role == "owner" {
 		roomIDs, err := utils.GetOwnerRoomIDs(userID.(uint))

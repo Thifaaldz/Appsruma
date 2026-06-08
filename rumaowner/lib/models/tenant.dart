@@ -51,7 +51,8 @@ class Tenant {
       checkInDate: json['check_in_date'] != null
           ? DateTime.parse(json['check_in_date'])
           : DateTime.now(),
-      checkOutDate: json['check_out_date'] != null &&
+      checkOutDate:
+          json['check_out_date'] != null &&
               json['check_out_date'] != '0001-01-01T00:00:00Z'
           ? DateTime.parse(json['check_out_date'])
           : null,
@@ -68,7 +69,8 @@ class Tenant {
       'phone': phone,
       'gender': gender,
       'check_in_date': checkInDate.toUtc().toIso8601String(),
-      if (checkOutDate != null) 'check_out_date': checkOutDate!.toUtc().toIso8601String(),
+      if (checkOutDate != null)
+        'check_out_date': checkOutDate!.toUtc().toIso8601String(),
       if (name != null) 'name': name,
       if (email != null) 'email': email,
       if (password != null) 'password': password,

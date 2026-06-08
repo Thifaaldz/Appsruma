@@ -33,9 +33,10 @@ class ComplaintProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await _apiClient.dio.put('/complaints/$id', data: {
-        'status': status,
-      });
+      final response = await _apiClient.dio.put(
+        '/complaints/$id',
+        data: {'status': status},
+      );
       if (response.statusCode == 200) {
         await fetchComplaints();
         _isLoading = false;

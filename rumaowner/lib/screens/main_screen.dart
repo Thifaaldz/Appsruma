@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+
+import '../core/theme.dart';
+import '../widgets/owner_widgets.dart';
+import 'complaint_screen.dart';
+import 'finance_screen.dart';
 import 'home_screen.dart';
+import 'profile_screen.dart';
 import 'room_screen.dart';
 import 'tenant_screen.dart';
-import 'complaint_screen.dart';
-import '../core/theme.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -15,56 +19,35 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    TenantScreen(),
-    RoomScreen(),
-    ComplaintScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  void _navigateTo(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: Container(
-        color: AppTheme.darkOlive,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 0),
-              _buildNavItem(Icons.people, 1),
-              _buildNavItem(Icons.edit_document, 2),
-              _buildNavItem(Icons.notifications_active, 3),
-            ],
-          ),
-        ),
+    final pages = <Widget>[
+      HomeScreen(
+        onOpenTenants: () => _navigateTo(1),
+        onOpenRooms: () => _navigateTo(2),
+        onOpenComplaints: () => _navigateTo(3),
+        onOpenFinance: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const FinanceScreen()));
+        },
       ),
-    );
-  }
+      const TenantScreen(),
+      const RoomScreen(),
+      const ComplaintScreen(),
+      const ProfileScreen(),
+    ];
 
-  Widget _buildNavItem(IconData icon, int index) {
-    final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.lightBeige : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          color: isSelected ? AppTheme.darkOlive : AppTheme.lightBeige,
-          size: 28,
-        ),
+    return Scaffold(
+      backgroundColor: AppTheme.lightBeige,
+      body: IndexedStack(index: _selectedIndex, children: pages),
+      bottomNavigationBar: OwnerBottomNav(
+        currentIndex: _selectedIndex,
+        onTap: _navigateTo,
       ),
     );
   }
