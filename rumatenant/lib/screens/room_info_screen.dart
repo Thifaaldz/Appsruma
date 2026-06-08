@@ -1,14 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
-import '../data/tenant_design_data.dart';
+import '../providers/tenant_provider.dart';
 import '../widgets/tenant_widgets.dart';
 
 class RoomInfoScreen extends StatelessWidget {
   const RoomInfoScreen({super.key});
 
+  String _formatCurrency(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('d MMMM yyyy', 'id_ID').format(date);
+    } catch (_) {
+      return dateStr.isNotEmpty ? dateStr : '-';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tp = context.watch<TenantProvider>();
+    final room = tp.room;
+    final tenant = tp.tenant;
+    final boardingHouse = tp.boardingHouse;
+
+    final roomLabel = 'Kamar ${room?.roomNumber ?? '-'}';
+    final roomPrice = room?.price ?? boardingHouse?.defaultRoomPrice ?? 0;
+    final isActive = room?.status == 'occupied';
+    final checkInDate = tenant?.checkInDate ?? '';
+
+    // Room features - these are based on the room data
+    // Since the backend doesn't have a room features field yet, we show basic room info
+    final features = <_FeatureItem>[
+      _FeatureItem(icon: Icons.meeting_room_outlined, label: roomLabel),
+      _FeatureItem(icon: Icons.home_outlined, label: boardingHouse?.name ?? '-'),
+    ];
+
     return SafeArea(
       bottom: false,
       child: Column(
@@ -24,19 +61,37 @@ class RoomInfoScreen extends StatelessWidget {
                   const SizedBox(height: 34),
                   const RumaPageTitle(title: 'Detail Kamar'),
                   const SizedBox(height: 24),
+                  // Room image placeholder
                   Container(
                     height: 140,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD9D9D9),
                       borderRadius: BorderRadius.circular(2),
                     ),
+                    child: room != null && room.imageUrls.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: Image.network(
+                              room.imageUrls.first,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) => const Center(
+                                child: Icon(Icons.image_not_supported_outlined,
+                                    size: 40, color: AppTheme.textMuted),
+                              ),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.meeting_room_outlined,
+                                size: 40, color: AppTheme.textMuted),
+                          ),
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          TenantDesignData.roomLabel,
+                          roomLabel,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 fontSize: 24,
@@ -45,27 +100,39 @@ class RoomInfoScreen extends StatelessWidget {
                         ),
                       ),
                       RumaStatusChip(
-                        label: 'Aktif',
-                        backgroundColor: AppTheme.statusMintBg,
-                        textColor: AppTheme.statusMintText,
+                        label: isActive ? 'Aktif' : (room?.status ?? '-'),
+                        backgroundColor:
+                            isActive ? AppTheme.statusMintBg : AppTheme.statusYellowBg,
+                        textColor:
+                            isActive ? AppTheme.statusMintText : AppTheme.statusYellowText,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    TenantDesignData.floorAndSize,
+                    boardingHouse?.name ?? '',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (boardingHouse?.address.isNotEmpty == true) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      boardingHouse!.address,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 13,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   RumaPanel(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Fasilitas',
+                          'Informasi Kos',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 fontSize: 18,
@@ -74,10 +141,8 @@ class RoomInfoScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: TenantDesignData.roomFeatures.map((
-                            feature,
-                          ) {
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: features.map((feature) {
                             return Column(
                               children: [
                                 Container(
@@ -95,7 +160,7 @@ class RoomInfoScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 SizedBox(
-                                  width: 56,
+                                  width: 80,
                                   child: Text(
                                     feature.label,
                                     textAlign: TextAlign.center,
@@ -104,6 +169,8 @@ class RoomInfoScreen extends StatelessWidget {
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                         ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -117,50 +184,28 @@ class RoomInfoScreen extends StatelessWidget {
                   RumaPanel(
                     padding: EdgeInsets.zero,
                     child: Column(
-                      children: const [
+                      children: [
                         _DetailRow(
                           label: 'Harga Sewa / Bulan',
-                          value: 'Rp 1.500.000',
+                          value: _formatCurrency(roomPrice),
                         ),
-                        Divider(height: 1),
-                        _DetailRow(label: 'Status Sewa', value: 'Aktif'),
-                        Divider(height: 1),
+                        const Divider(height: 1),
+                        _DetailRow(
+                          label: 'Status Sewa',
+                          value: isActive ? 'Aktif' : (room?.status ?? '-'),
+                        ),
+                        const Divider(height: 1),
                         _DetailRow(
                           label: 'Mulai Sewa',
-                          value: '4 September 2025',
+                          value: _formatDate(checkInDate),
                         ),
-                        Divider(height: 1),
-                        _DetailRow(
-                          label: 'Jatuh Tempo',
-                          value: '10 Setiap Bulan',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  RumaPanel(
-                    backgroundColor: const Color(0xFFF1E3C7),
-                    borderColor: const Color(0xFFF1E3C7),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Aturan Kos',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Jaga kebersihan kos, tidak membuat keributan,\npatuhi jam malam (22.00)',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
+                        if (tenant?.checkOutDate.isNotEmpty == true) ...[
+                          const Divider(height: 1),
+                          _DetailRow(
+                            label: 'Selesai Sewa',
+                            value: _formatDate(tenant!.checkOutDate),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -173,6 +218,12 @@ class RoomInfoScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FeatureItem {
+  const _FeatureItem({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
 }
 
 class _DetailRow extends StatelessWidget {

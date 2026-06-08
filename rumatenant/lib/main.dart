@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/auth_provider.dart';
 import 'providers/complaint_provider.dart';
+import 'providers/tenant_provider.dart';
 import 'core/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkAuth()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
+        ChangeNotifierProvider(create: (_) => TenantProvider()),
       ],
       child: const MyApp(),
     ),
@@ -42,6 +47,7 @@ class StartupGate extends StatefulWidget {
 
 class _StartupGateState extends State<StartupGate> {
   bool _allowTransition = false;
+  bool _dataFetched = false;
 
   @override
   void initState() {
@@ -58,6 +64,22 @@ class _StartupGateState extends State<StartupGate> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final showTarget = _allowTransition && !auth.isChecking;
+
+    // Once auth is verified and user is logged in, fetch tenant data
+    if (showTarget && auth.token != null && !_dataFetched) {
+      _dataFetched = true;
+      Future.microtask(() {
+        if (mounted) {
+          context.read<TenantProvider>().fetchAll();
+        }
+      });
+    }
+
+    // If user logged out, reset
+    if (auth.token == null && _dataFetched) {
+      _dataFetched = false;
+    }
+
     final child = showTarget
         ? (auth.token != null ? const MainScreen() : const LoginScreen())
         : const SplashScreen();

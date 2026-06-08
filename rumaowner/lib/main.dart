@@ -5,6 +5,7 @@ import 'providers/room_provider.dart';
 import 'providers/tenant_provider.dart';
 import 'providers/boarding_house_provider.dart';
 import 'providers/complaint_provider.dart';
+import 'providers/payment_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
@@ -19,6 +20,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => TenantProvider()),
         ChangeNotifierProvider(create: (_) => BoardingHouseProvider()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: const MyApp(),
     ),

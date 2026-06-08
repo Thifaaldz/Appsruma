@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import '../core/api_client.dart';
+import '../models/user.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -15,6 +16,9 @@ class AuthProvider with ChangeNotifier {
 
   String? _token;
   String? get token => _token;
+
+  User? _user;
+  User? get user => _user;
 
   AuthProvider() {
     ApiClient.onUnauthorized = () {
@@ -35,6 +39,12 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         _token = response.data['token'];
         await _storage.write(key: 'token', value: _token);
+
+        // Store user data from login response
+        if (response.data['user'] != null) {
+          _user = User.fromJson(response.data['user']);
+        }
+
         _isLoading = false;
         notifyListeners();
         return true;
@@ -51,6 +61,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     await _storage.delete(key: 'token');
     _token = null;
+    _user = null;
     notifyListeners();
   }
 
@@ -61,8 +72,11 @@ class AuthProvider with ChangeNotifier {
     _token = await _storage.read(key: 'token');
     if (_token != null) {
       try {
-        final response = await _apiClient.dio.get('/rooms');
-        if (response.statusCode != 200) {
+        // Fetch user profile to validate the token
+        final response = await _apiClient.dio.get('/auth/me');
+        if (response.statusCode == 200) {
+          _user = User.fromJson(response.data);
+        } else {
           await logout();
         }
       } on DioException catch (e) {

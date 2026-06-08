@@ -38,20 +38,18 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     final complaintProvider = context.watch<ComplaintProvider>();
-    final complaintItems = complaintProvider.complaints.isNotEmpty
-        ? complaintProvider.complaints
-              .map(
-                (complaint) => ComplaintHistoryItem(
-                  title: complaint.title,
-                  subtitle: complaint.description,
-                  status: _mapStatus(complaint.status),
-                  statusColor: _statusBackground(complaint.status),
-                  statusTextColor: _statusTextColor(complaint.status),
-                  date: 'Hari ini',
-                ),
-              )
-              .toList()
-        : TenantDesignData.complaintHistory;
+    final complaintItems = complaintProvider.complaints
+        .map(
+          (complaint) => ComplaintHistoryItem(
+            title: complaint.title,
+            subtitle: complaint.description,
+            status: _mapStatus(complaint.status),
+            statusColor: _statusBackground(complaint.status),
+            statusTextColor: _statusTextColor(complaint.status),
+            date: 'Hari ini',
+          ),
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: AppTheme.lightBeige,
@@ -285,22 +283,42 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                   ),
                 ),
               ] else ...[
-                RumaPanel(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    children: complaintItems.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return Column(
-                        children: [
-                          _ComplaintHistoryRow(item: item),
-                          if (index != complaintItems.length - 1)
-                            const Divider(height: 1),
-                        ],
-                      );
-                    }).toList(),
+                if (complaintProvider.isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: CircularProgressIndicator(color: AppTheme.olive),
+                    ),
+                  )
+                else if (complaintItems.isEmpty)
+                  RumaPanel(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        'Belum ada riwayat laporan keluhan.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  RumaPanel(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: complaintItems.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        return Column(
+                          children: [
+                            _ComplaintHistoryRow(item: item),
+                            if (index != complaintItems.length - 1)
+                              const Divider(height: 1),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
               ],
             ],
           ),

@@ -35,6 +35,9 @@ func SetupRoutes(r *gin.Engine) {
 			auth.GET("/tenants", authController.GetTenantUsers)
 		}
 
+		// Public webhook for Midtrans
+		api.POST("/payments/webhook", paymentController.MidtransWebhook)
+
 		// Protected routes
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
@@ -94,6 +97,9 @@ func SetupRoutes(r *gin.Engine) {
 				payments.GET("", paymentController.GetAllPayments)
 				payments.POST("", paymentController.CreatePayment)
 				payments.GET("/tenant/:tenantId", paymentController.GetTenantPayments)
+				payments.PUT("/:id/confirm", paymentController.ConfirmPayment)
+				payments.POST("/:id/snap-token", paymentController.GetSnapToken)
+				payments.GET("/status/:orderId", paymentController.CheckPaymentStatus)
 			}
 
 			// Complaints

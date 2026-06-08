@@ -6,6 +6,7 @@ import (
 	"ruma/config"
 	"ruma/models"
 	"ruma/repositories"
+	"ruma/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,24 @@ func (ctrl *BoardingHouseController) GetMyBoardingHouses(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, bhs)
+		return
+	} else if role == "tenant" {
+		tenant, err := utils.GetTenantByUserID(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusOK, []models.BoardingHouse{})
+			return
+		}
+		var room models.Room
+		if err := config.DB.First(&room, tenant.RoomID).Error; err != nil {
+			c.JSON(http.StatusOK, []models.BoardingHouse{})
+			return
+		}
+		bh, err := ctrl.bhRepo.FindByID(room.BoardingHouseID)
+		if err != nil {
+			c.JSON(http.StatusOK, []models.BoardingHouse{})
+			return
+		}
+		c.JSON(http.StatusOK, []models.BoardingHouse{*bh})
 		return
 	}
 

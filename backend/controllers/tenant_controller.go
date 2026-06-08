@@ -221,6 +221,28 @@ func (ctrl *TenantController) CreateTenant(c *gin.Context) {
 	// Automatically mark the Room as occupied
 	config.DB.Model(&models.Room{}).Where("id = ?", req.RoomID).Update("status", "occupied")
 
+	// Auto-create a pending payment (first month bill) based on room price
+	var room models.Room
+	if err := config.DB.First(&room, req.RoomID).Error; err == nil {
+		amount := room.Price
+		if amount <= 0 {
+			// Fallback to boarding house default price
+			var bh models.BoardingHouse
+			if err := config.DB.First(&bh, room.BoardingHouseID).Error; err == nil {
+				amount = bh.DefaultRoomPrice
+			}
+		}
+		if amount > 0 {
+			payment := models.Payment{
+				TenantID:    tenant.ID,
+				Amount:      amount,
+				PaymentDate: checkIn,
+				Status:      "pending",
+			}
+			config.DB.Create(&payment)
+		}
+	}
+
 	c.JSON(http.StatusCreated, tenant)
 }
 
