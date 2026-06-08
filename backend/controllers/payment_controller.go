@@ -487,4 +487,3 @@ func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, statusResp)
 }
-

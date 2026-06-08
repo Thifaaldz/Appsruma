@@ -1,0 +1,13 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Tooling/AI agents
+.antigravitycli/
+.codex/
+.agents/
+
+# OS files
+.DS_Store
+Thumbs.db
