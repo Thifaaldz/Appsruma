@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../core/api_client.dart';
 import '../models/tenant.dart';
 import '../models/room.dart';
@@ -156,6 +157,36 @@ class TenantProvider with ChangeNotifier {
       debugPrint('TenantProvider.checkPaymentStatus error: $e');
     }
     return false;
+  }
+
+  /// Pay next month in advance - creates a new pending bill for next month
+  Future<Map<String, dynamic>?> payNextMonth() async {
+    try {
+      final response = await _apiClient.dio.post('/payments/pay-next-month');
+      if (response.statusCode == 201) {
+        await _fetchPayments();
+        notifyListeners();
+        return response.data as Map<String, dynamic>;
+      }
+    } on DioException catch (e) {
+      debugPrint('TenantProvider.payNextMonth error: $e');
+      if (e.response?.data != null && e.response!.data is Map) {
+        return {'error': e.response!.data['error'] ?? 'Gagal membuat tagihan bulan depan'};
+      }
+    } catch (e) {
+      debugPrint('TenantProvider.payNextMonth error: $e');
+    }
+    return {'error': 'Gagal membuat tagihan bulan depan'};
+  }
+
+  /// Get all pending payments (including overdue)
+  List<Payment> get pendingPayments {
+    return _payments.where((p) => p.isPending).toList();
+  }
+
+  /// Check if all current bills are paid
+  bool get allPaid {
+    return _payments.isNotEmpty && !_payments.any((p) => p.isPending);
   }
 
   /// Refresh all data

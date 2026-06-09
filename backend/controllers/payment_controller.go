@@ -27,6 +27,58 @@ func NewPaymentController(paymentRepo repositories.PaymentRepository) *PaymentCo
 	return &PaymentController{paymentRepo: paymentRepo}
 }
 
+// getBillingPeriodLabel returns Indonesian month-year label for a given date
+func getBillingPeriodLabel(t time.Time) string {
+	months := []string{
+		"", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+		"Juli", "Agustus", "September", "Oktober", "November", "Desember",
+	}
+	return fmt.Sprintf("%s %d", months[t.Month()], t.Year())
+}
+
+// getRoomPrice returns the room price, falling back to boarding house default
+func getRoomPrice(tenant *models.Tenant) float64 {
+	amount := tenant.Room.Price
+	if amount <= 0 {
+		var bh models.BoardingHouse
+		if err := config.DB.First(&bh, tenant.Room.BoardingHouseID).Error; err == nil {
+			amount = bh.DefaultRoomPrice
+		}
+	}
+	return amount
+}
+
+// CreateFirstBill creates the first pending payment when a tenant is added.
+// The tenant is NOT counted as "paid" - they must pay through Midtrans.
+func CreateFirstBill(tenant *models.Tenant) error {
+	amount := getRoomPrice(tenant)
+	if amount <= 0 {
+		return nil
+	}
+
+	dueDate := tenant.CheckInDate
+	overdueDate := dueDate.AddDate(0, 0, 10)
+	billingPeriod := getBillingPeriodLabel(dueDate)
+
+	payment := models.Payment{
+		TenantID:      tenant.ID,
+		Amount:        amount,
+		DueDate:       dueDate,
+		OverdueDate:   overdueDate,
+		BillingPeriod: billingPeriod,
+		PaymentDate:   dueDate,
+		Status:        "pending",
+	}
+
+	return config.DB.Create(&payment).Error
+}
+
+// EnsureNextBillGenerated checks if the next billing cycle needs a new bill.
+// Logic:
+//   - If no payments exist, create first bill on check-in date
+//   - If latest payment is still pending, don't create another
+//   - If latest is paid, check if it's time for next month's bill
+//   - Mark overdue bills (pending + past overdue_date)
 func EnsureNextBillGenerated(tenantID uint) error {
 	var tenant models.Tenant
 	if err := config.DB.Preload("Room").First(&tenant, tenantID).Error; err != nil {
@@ -34,55 +86,83 @@ func EnsureNextBillGenerated(tenantID uint) error {
 	}
 
 	var payments []models.Payment
-	if err := config.DB.Where("tenant_id = ?", tenantID).Order("payment_date desc").Find(&payments).Error; err != nil {
+	if err := config.DB.Where("tenant_id = ?", tenantID).Order("due_date desc").Find(&payments).Error; err != nil {
 		return err
 	}
 
-	// If no payments exist, create the first one on check-in date
-	if len(payments) == 0 {
-		amount := tenant.Room.Price
-		if amount <= 0 {
-			var bh models.BoardingHouse
-			if err := config.DB.First(&bh, tenant.Room.BoardingHouseID).Error; err == nil {
-				amount = bh.DefaultRoomPrice
-			}
+	now := time.Now()
+
+	// Mark overdue payments
+	for i := range payments {
+		if payments[i].Status == "pending" && now.After(payments[i].OverdueDate) {
+			payments[i].Status = "overdue"
+			config.DB.Save(&payments[i])
 		}
-		firstPayment := models.Payment{
-			TenantID:    tenantID,
-			Amount:      amount,
-			PaymentDate: tenant.CheckInDate,
-			Status:      "pending",
-		}
-		return config.DB.Create(&firstPayment).Error
 	}
 
-	// Get latest payment
+	// If no payments exist, create the first one
+	if len(payments) == 0 {
+		return CreateFirstBill(&tenant)
+	}
+
+	// Get billing day from tenant
+	billingDay := tenant.BillingDay
+	if billingDay <= 0 {
+		billingDay = tenant.CheckInDate.Day()
+	}
+	// Clamp billing day to 28 to avoid month-end issues
+	if billingDay > 28 {
+		billingDay = 28
+	}
+
+	// Find the latest payment by due date
 	latest := payments[0]
 
-	// If the latest is still pending, no need to create another pending bill
-	if latest.Status == "pending" {
-		return nil
+	// If there's still a pending or overdue payment, don't create another
+	for _, p := range payments {
+		if p.Status == "pending" || p.Status == "overdue" {
+			return nil
+		}
 	}
 
-	// Latest is paid. Next due date is latest.PaymentDate + 1 month
-	nextDueDate := latest.PaymentDate.AddDate(0, 1, 0)
-	// New bill generation date is 10 days before nextDueDate
-	genDate := nextDueDate.AddDate(0, 0, -10)
+	// All existing payments are paid. Generate next month's bill.
+	// Next due date is the billing day in the month after the latest payment
+	nextDueDate := time.Date(
+		latest.DueDate.Year(),
+		latest.DueDate.Month()+1,
+		billingDay,
+		0, 0, 0, 0,
+		latest.DueDate.Location(),
+	)
 
-	// If today is at or after genDate, generate the next bill
-	if time.Now().After(genDate) {
-		amount := tenant.Room.Price
-		if amount <= 0 {
-			var bh models.BoardingHouse
-			if err := config.DB.First(&bh, tenant.Room.BoardingHouseID).Error; err == nil {
-				amount = bh.DefaultRoomPrice
-			}
+	// Only generate if we're within 10 days before or after the next due date
+	// (or if the due date has already passed)
+	genWindowStart := nextDueDate.AddDate(0, 0, -10)
+	if now.After(genWindowStart) {
+		// Check that this period doesn't already have a bill
+		periodLabel := getBillingPeriodLabel(nextDueDate)
+		var count int64
+		config.DB.Model(&models.Payment{}).
+			Where("tenant_id = ? AND billing_period = ?", tenantID, periodLabel).
+			Count(&count)
+		if count > 0 {
+			return nil
 		}
+
+		amount := getRoomPrice(&tenant)
+		if amount <= 0 {
+			return nil
+		}
+
+		overdueDate := nextDueDate.AddDate(0, 0, 10)
 		nextPayment := models.Payment{
-			TenantID:    tenantID,
-			Amount:      amount,
-			PaymentDate: nextDueDate,
-			Status:      "pending",
+			TenantID:      tenantID,
+			Amount:        amount,
+			DueDate:       nextDueDate,
+			OverdueDate:   overdueDate,
+			BillingPeriod: periodLabel,
+			PaymentDate:   nextDueDate,
+			Status:        "pending",
 		}
 		return config.DB.Create(&nextPayment).Error
 	}
@@ -108,7 +188,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 			EnsureNextBillGenerated(tid)
 		}
 		var payments []models.Payment
-		if err := config.DB.Preload("Tenant.User").Where("tenant_id IN ?", tenantIDs).Find(&payments).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id IN ?", tenantIDs).Order("due_date desc").Find(&payments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}
@@ -122,7 +202,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 		}
 		EnsureNextBillGenerated(tenant.ID)
 		var payments []models.Payment
-		if err := config.DB.Preload("Tenant.User").Where("tenant_id = ?", tenant.ID).Find(&payments).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id = ?", tenant.ID).Order("due_date desc").Find(&payments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}
@@ -233,7 +313,7 @@ func (ctrl *PaymentController) ConfirmPayment(c *gin.Context) {
 		return
 	}
 
-	if payment.Status != "pending" {
+	if payment.Status != "pending" && payment.Status != "overdue" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Pembayaran ini sudah diproses"})
 		return
 	}
@@ -263,14 +343,145 @@ func (ctrl *PaymentController) ConfirmPayment(c *gin.Context) {
 		}
 	}
 
+	now := time.Now()
 	payment.Status = "paid"
-	payment.PaymentDate = time.Now()
+	payment.PaidAt = &now
+	payment.PaymentDate = now
 	if err := ctrl.paymentRepo.Update(payment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status pembayaran"})
 		return
 	}
 
 	c.JSON(http.StatusOK, payment)
+}
+
+// PayNextMonth allows a tenant to create a bill for the next month and pay it in advance
+func (ctrl *PaymentController) PayNextMonth(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var tenantID uint
+
+	if role == "tenant" {
+		tenant, err := utils.GetTenantByUserID(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Tenant record not found"})
+			return
+		}
+		tenantID = tenant.ID
+	} else if role == "owner" {
+		// Owner can specify tenant_id in body
+		var body struct {
+			TenantID uint `json:"tenant_id" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		tenantIDs, err := utils.GetOwnerTenantIDs(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify tenant details"})
+			return
+		}
+		allowed := false
+		for _, tid := range tenantIDs {
+			if tid == body.TenantID {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Tenant does not belong to your boarding house"})
+			return
+		}
+		tenantID = body.TenantID
+	}
+
+	var tenant models.Tenant
+	if err := config.DB.Preload("Room").First(&tenant, tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tenant not found"})
+		return
+	}
+
+	// Find the latest payment for this tenant
+	var payments []models.Payment
+	if err := config.DB.Where("tenant_id = ?", tenantID).Order("due_date desc").Find(&payments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
+		return
+	}
+
+	// Check if there's still a pending payment - must pay current first
+	for _, p := range payments {
+		if p.Status == "pending" || p.Status == "overdue" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Anda masih memiliki tagihan yang belum dibayar. Silakan bayar terlebih dahulu."})
+			return
+		}
+	}
+
+	billingDay := tenant.BillingDay
+	if billingDay <= 0 {
+		billingDay = tenant.CheckInDate.Day()
+	}
+	if billingDay > 28 {
+		billingDay = 28
+	}
+
+	// Calculate next month's due date based on latest payment
+	var nextDueDate time.Time
+	if len(payments) > 0 {
+		latest := payments[0]
+		nextDueDate = time.Date(
+			latest.DueDate.Year(),
+			latest.DueDate.Month()+1,
+			billingDay,
+			0, 0, 0, 0,
+			latest.DueDate.Location(),
+		)
+	} else {
+		// No payments yet, next month from check-in
+		nextDueDate = time.Date(
+			tenant.CheckInDate.Year(),
+			tenant.CheckInDate.Month()+1,
+			billingDay,
+			0, 0, 0, 0,
+			tenant.CheckInDate.Location(),
+		)
+	}
+
+	// Check if this period already exists
+	periodLabel := getBillingPeriodLabel(nextDueDate)
+	var count int64
+	config.DB.Model(&models.Payment{}).
+		Where("tenant_id = ? AND billing_period = ?", tenantID, periodLabel).
+		Count(&count)
+	if count > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Tagihan untuk periode %s sudah ada", periodLabel)})
+		return
+	}
+
+	amount := getRoomPrice(&tenant)
+	if amount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Harga kamar belum diatur"})
+		return
+	}
+
+	overdueDate := nextDueDate.AddDate(0, 0, 10)
+	nextPayment := models.Payment{
+		TenantID:      tenantID,
+		Amount:        amount,
+		DueDate:       nextDueDate,
+		OverdueDate:   overdueDate,
+		BillingPeriod: periodLabel,
+		PaymentDate:   nextDueDate,
+		Status:        "pending",
+	}
+
+	if err := config.DB.Create(&nextPayment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tagihan bulan depan"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, nextPayment)
 }
 
 // GetSnapToken generates a Midtrans Snap transaction token and redirect URL
@@ -285,7 +496,7 @@ func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 		return
 	}
 
-	if payment.Status != "pending" {
+	if payment.Status != "pending" && payment.Status != "overdue" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Pembayaran ini sudah lunas atau diproses"})
 		return
 	}
@@ -310,6 +521,10 @@ func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 	// Create unique order ID
 	orderID := fmt.Sprintf("RUMA-PAY-%d-%d", payment.ID, time.Now().Unix())
 
+	// Save order ID to payment for tracking
+	payment.MidtransOrderID = orderID
+	ctrl.paymentRepo.Update(payment)
+
 	// Build Snap Request body
 	snapReq := map[string]interface{}{
 		"transaction_details": map[string]interface{}{
@@ -319,7 +534,7 @@ func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 		"customer_details": map[string]interface{}{
 			"first_name": tenant.User.Name,
 			"email":      tenant.User.Email,
-			"phone":      payment.Phone,
+			"phone":      tenant.Phone,
 		},
 		"credit_card": map[string]interface{}{
 			"secure": true,
@@ -371,6 +586,9 @@ func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 }
 
 // MidtransWebhook handles notifications sent by Midtrans sandbox/production
+// When payment is confirmed (settlement/capture), it:
+// 1. Marks payment as "paid"
+// 2. Sets PaidAt timestamp → this triggers it to count as owner income
 func (ctrl *PaymentController) MidtransWebhook(c *gin.Context) {
 	var notification map[string]interface{}
 	if err := c.ShouldBindJSON(&notification); err != nil {
@@ -411,12 +629,15 @@ func (ctrl *PaymentController) MidtransWebhook(c *gin.Context) {
 
 	if status == "settlement" || status == "capture" {
 		if payment.Status != "paid" {
+			now := time.Now()
 			payment.Status = "paid"
-			payment.PaymentDate = time.Now()
+			payment.PaidAt = &now
+			payment.PaymentDate = now
+			payment.MidtransOrderID = orderID
 			ctrl.paymentRepo.Update(payment)
 		}
 	} else if status == "expire" || status == "cancel" || status == "deny" {
-		if payment.Status == "pending" {
+		if payment.Status == "pending" || payment.Status == "overdue" {
 			payment.Status = "cancelled"
 			ctrl.paymentRepo.Update(payment)
 		}
@@ -461,7 +682,7 @@ func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 		return
 	}
 
-	status, _ := statusResp["transaction_status"].(string)
+	txStatus, _ := statusResp["transaction_status"].(string)
 
 	parts := strings.Split(orderID, "-")
 	if len(parts) >= 3 && parts[0] == "RUMA" && parts[1] == "PAY" {
@@ -469,14 +690,17 @@ func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 		if err == nil {
 			payment, err := ctrl.paymentRepo.FindByID(uint(paymentIDVal))
 			if err == nil {
-				if status == "settlement" || status == "capture" {
+				if txStatus == "settlement" || txStatus == "capture" {
 					if payment.Status != "paid" {
+						now := time.Now()
 						payment.Status = "paid"
-						payment.PaymentDate = time.Now()
+						payment.PaidAt = &now
+						payment.PaymentDate = now
+						payment.MidtransOrderID = orderID
 						ctrl.paymentRepo.Update(payment)
 					}
-				} else if status == "expire" || status == "cancel" || status == "deny" {
-					if payment.Status == "pending" {
+				} else if txStatus == "expire" || txStatus == "cancel" || txStatus == "deny" {
+					if payment.Status == "pending" || payment.Status == "overdue" {
 						payment.Status = "cancelled"
 						ctrl.paymentRepo.Update(payment)
 					}

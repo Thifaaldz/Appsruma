@@ -28,15 +28,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String _mapStatusLabel(String status) {
     final s = status.toLowerCase();
-    if (s == 'paid' || s == 'lunas') return 'Lunas';
-    if (s == 'pending' || s == 'belum bayar') return 'Belum Bayar';
+    if (s == 'paid') return 'Lunas';
+    if (s == 'pending') return 'Belum Bayar';
+    if (s == 'overdue') return 'Overdue';
     if (s == 'cancelled') return 'Dibatalkan';
     return status;
   }
 
   bool _isPaid(String status) {
-    final s = status.toLowerCase();
-    return s == 'paid' || s == 'lunas';
+    return status.toLowerCase() == 'paid';
   }
 
   @override
@@ -47,7 +47,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final visibleItems = payments.where((item) {
       final label = _mapStatusLabel(item.status);
       if (_selectedFilter == 'Lunas') return label == 'Lunas';
-      if (_selectedFilter == 'Belum Bayar') return label == 'Belum Bayar';
+      if (_selectedFilter == 'Belum Bayar') return label == 'Belum Bayar' || label == 'Overdue';
       return true;
     }).toList();
 
@@ -144,19 +144,49 @@ class _HistoryItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final paid = isPaid(item.status);
+    final overdue = item.isOverdue;
     final statusLabel = mapStatusLabel(item.status);
 
-    String periodLabel = '';
+    // Use billing_period if available, otherwise parse from due_date
+    String periodLabel = item.billingPeriod;
+    if (periodLabel.isEmpty) {
+      try {
+        final date = DateTime.parse(item.dueDate.isNotEmpty ? item.dueDate : item.paymentDate);
+        periodLabel = DateFormat('MMMM yyyy', 'id_ID').format(date);
+      } catch (_) {
+        periodLabel = '-';
+      }
+    }
+
     String dateLabel = '';
-    try {
-      final date = DateTime.parse(item.paymentDate);
-      periodLabel = DateFormat('MMMM yyyy', 'id_ID').format(date);
-      dateLabel = paid
-          ? 'Dibayar ${DateFormat('d MMMM yyyy', 'id_ID').format(date)}'
-          : 'Jatuh tempo ${DateFormat('d MMMM yyyy', 'id_ID').format(date)}';
-    } catch (_) {
-      periodLabel = item.paymentDate;
-      dateLabel = item.paymentDate;
+    if (paid && item.paidAt != null && item.paidAt!.isNotEmpty) {
+      try {
+        final paidDate = DateTime.parse(item.paidAt!);
+        dateLabel = 'Dibayar ${DateFormat('d MMMM yyyy', 'id_ID').format(paidDate)}';
+      } catch (_) {
+        dateLabel = 'Dibayar';
+      }
+    } else {
+      try {
+        final dueDate = DateTime.parse(item.dueDate.isNotEmpty ? item.dueDate : item.paymentDate);
+        dateLabel = 'Jatuh tempo ${DateFormat('d MMMM yyyy', 'id_ID').format(dueDate)}';
+      } catch (_) {
+        dateLabel = '-';
+      }
+    }
+
+    Color bgColor = paid ? AppTheme.statusMintBg : AppTheme.statusYellowBg;
+    Color iconColor = paid ? AppTheme.statusGreenText : AppTheme.statusYellowText;
+    IconData iconData = paid ? Icons.check_circle_outline : Icons.access_time;
+    Color chipBg = paid ? AppTheme.statusGreenBg : AppTheme.statusYellowBg;
+    Color chipText = paid ? AppTheme.statusGreenText : AppTheme.statusYellowText;
+
+    if (overdue) {
+      bgColor = const Color(0xFFFDE8E8);
+      iconColor = const Color(0xFFB23A48);
+      iconData = Icons.warning_amber_rounded;
+      chipBg = const Color(0xFFFDE8E8);
+      chipText = const Color(0xFFB23A48);
     }
 
     return Padding(
@@ -167,13 +197,13 @@ class _HistoryItemRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: paid ? AppTheme.statusMintBg : AppTheme.statusYellowBg,
+              color: bgColor,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              paid ? Icons.check_circle_outline : Icons.access_time,
+              iconData,
               size: 18,
-              color: paid ? AppTheme.statusGreenText : AppTheme.statusYellowText,
+              color: iconColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -209,10 +239,8 @@ class _HistoryItemRow extends StatelessWidget {
           const SizedBox(width: 12),
           RumaStatusChip(
             label: statusLabel,
-            backgroundColor:
-                paid ? AppTheme.statusGreenBg : AppTheme.statusYellowBg,
-            textColor:
-                paid ? AppTheme.statusGreenText : AppTheme.statusYellowText,
+            backgroundColor: chipBg,
+            textColor: chipText,
           ),
         ],
       ),

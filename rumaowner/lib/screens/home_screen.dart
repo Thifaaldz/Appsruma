@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:intl/intl.dart';
 import '../core/theme.dart';
 import '../data/owner_design_data.dart';
 import '../providers/auth_provider.dart';
@@ -8,6 +9,7 @@ import '../providers/boarding_house_provider.dart';
 import '../providers/complaint_provider.dart';
 import '../providers/room_provider.dart';
 import '../providers/tenant_provider.dart';
+import '../providers/payment_provider.dart';
 import '../widgets/owner_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -39,7 +41,17 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<RoomProvider>().fetchRooms();
       context.read<TenantProvider>().fetchTenants();
       context.read<ComplaintProvider>().fetchComplaints();
+      context.read<PaymentProvider>().fetchPayments();
     });
+  }
+
+  String _formatCurrency(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
   }
 
   @override
@@ -48,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final roomProvider = context.watch<RoomProvider>();
     final tenantProvider = context.watch<TenantProvider>();
     final complaintProvider = context.watch<ComplaintProvider>();
+    final paymentProvider = context.watch<PaymentProvider>();
     final user = context.watch<AuthProvider>().currentUser;
     final ownerName = user?.name.isNotEmpty == true ? user!.name : 'Owner';
     final rooms = roomProvider.rooms;
@@ -64,12 +77,15 @@ class _HomeScreenState extends State<HomeScreen> {
             (sum, house) =>
                 sum + (house.vacantRooms > 0 ? house.vacantRooms : 0),
           );
-    final incomeValue = rooms
-        .where((room) => room.status.toLowerCase() == 'occupied')
-        .fold<double>(0, (sum, room) => sum + room.price);
-    final incomeLabel = rooms.isNotEmpty
-        ? 'Rp. ${incomeValue.toStringAsFixed(0)}'
-        : 'Rp. 0';
+    // Sum of paid payments
+    final paidPayments = paymentProvider.payments
+        .where((p) => p.status == 'paid')
+        .toList();
+    final incomeValue = paidPayments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
+    final incomeLabel = _formatCurrency(incomeValue);
     final reminderCount = tenantProvider.tenants.isNotEmpty
         ? tenantProvider.tenants.length
         : 2;

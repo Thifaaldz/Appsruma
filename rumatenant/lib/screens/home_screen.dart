@@ -37,17 +37,21 @@ class HomeScreen extends StatelessWidget {
     final roomPrice = room?.price ?? boardingHouse?.defaultRoomPrice ?? 0;
     final monthlyBill = _formatCurrency(roomPrice);
 
-    // Calculate current billing period
+    // Use billing period from pending payment if available
+    final pendingPay = tp.pendingPayment;
     final now = DateTime.now();
-    final currentMonth = DateFormat('MMMM yyyy', 'id_ID').format(now);
+    final currentMonth = pendingPay != null && pendingPay.billingPeriod.isNotEmpty
+        ? pendingPay.billingPeriod
+        : DateFormat('MMMM yyyy', 'id_ID').format(now);
 
-    // Check if there's an unpaid payment this month
+    // Check if there's an unpaid payment
     final hasPendingPayment = payments.any((p) =>
-        p.status == 'pending' || p.status == 'Belum Bayar');
+        p.status == 'pending' || p.status == 'overdue');
+    final hasOverdue = payments.any((p) => p.status == 'overdue');
 
     // Find the latest paid payment for the history section
     final paidPayments = payments.where((p) =>
-        p.status == 'paid' || p.status == 'Lunas').toList();
+        p.status == 'paid').toList();
     final latestPaid = paidPayments.isNotEmpty ? paidPayments.first : null;
 
     return SafeArea(
@@ -163,13 +167,21 @@ class HomeScreen extends StatelessWidget {
                           Align(
                             alignment: Alignment.centerRight,
                             child: RumaStatusChip(
-                              label: hasPendingPayment ? 'Belum Bayar' : 'Lunas',
-                              backgroundColor: hasPendingPayment
-                                  ? AppTheme.statusYellowBg
-                                  : AppTheme.statusGreenBg,
-                              textColor: hasPendingPayment
-                                  ? AppTheme.statusYellowText
-                                  : AppTheme.statusGreenText,
+                              label: hasOverdue
+                                  ? 'Overdue'
+                                  : hasPendingPayment
+                                      ? 'Belum Bayar'
+                                      : 'Lunas',
+                              backgroundColor: hasOverdue
+                                  ? const Color(0xFFFDE8E8)
+                                  : hasPendingPayment
+                                      ? AppTheme.statusYellowBg
+                                      : AppTheme.statusGreenBg,
+                              textColor: hasOverdue
+                                  ? const Color(0xFFB23A48)
+                                  : hasPendingPayment
+                                      ? AppTheme.statusYellowText
+                                      : AppTheme.statusGreenText,
                             ),
                           ),
                         ],

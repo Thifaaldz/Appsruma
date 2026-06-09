@@ -204,11 +204,18 @@ func (ctrl *TenantController) CreateTenant(c *gin.Context) {
 		}
 	}
 
+	// Set billing day from check-in date (tanggal tagihan bulanan)
+	billingDay := checkIn.Day()
+	if billingDay > 28 {
+		billingDay = 28
+	}
+
 	tenant := models.Tenant{
 		UserID:       targetUserID,
 		RoomID:       req.RoomID,
 		Phone:        req.Phone,
 		Gender:       req.Gender,
+		BillingDay:   billingDay,
 		CheckInDate:  checkIn,
 		CheckOutDate: checkOut,
 	}
@@ -221,27 +228,10 @@ func (ctrl *TenantController) CreateTenant(c *gin.Context) {
 	// Automatically mark the Room as occupied
 	config.DB.Model(&models.Room{}).Where("id = ?", req.RoomID).Update("status", "occupied")
 
-	// Auto-create a pending payment (first month bill) based on room price
-	var room models.Room
-	if err := config.DB.First(&room, req.RoomID).Error; err == nil {
-		amount := room.Price
-		if amount <= 0 {
-			// Fallback to boarding house default price
-			var bh models.BoardingHouse
-			if err := config.DB.First(&bh, room.BoardingHouseID).Error; err == nil {
-				amount = bh.DefaultRoomPrice
-			}
-		}
-		if amount > 0 {
-			payment := models.Payment{
-				TenantID:    tenant.ID,
-				Amount:      amount,
-				PaymentDate: checkIn,
-				Status:      "pending",
-			}
-			config.DB.Create(&payment)
-		}
-	}
+	// Create first pending bill (NOT paid) - tenant must pay via Midtrans
+	// Load room data for price calculation
+	config.DB.Preload("Room").First(&tenant, tenant.ID)
+	CreateFirstBill(&tenant)
 
 	c.JSON(http.StatusCreated, tenant)
 }

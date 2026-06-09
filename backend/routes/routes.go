@@ -100,6 +100,7 @@ func SetupRoutes(r *gin.Engine) {
 				payments.PUT("/:id/confirm", paymentController.ConfirmPayment)
 				payments.POST("/:id/snap-token", paymentController.GetSnapToken)
 				payments.GET("/status/:orderId", paymentController.CheckPaymentStatus)
+				payments.POST("/pay-next-month", paymentController.PayNextMonth)
 			}
 
 			// Complaints

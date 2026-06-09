@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../core/theme.dart';
 import '../providers/tenant_provider.dart';
 import '../widgets/tenant_widgets.dart';
+import 'midtrans_webview_screen.dart';
 
 class PaymentScreen extends StatelessWidget {
   const PaymentScreen({super.key});
@@ -19,15 +19,24 @@ class PaymentScreen extends StatelessWidget {
     return formatter.format(amount);
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tp = context.watch<TenantProvider>();
     final room = tp.room;
     final boardingHouse = tp.boardingHouse;
     final pendingPayment = tp.pendingPayment;
+    final allPaid = tp.allPaid;
     final roomPrice = room?.price ?? boardingHouse?.defaultRoomPrice ?? 0;
-    final now = DateTime.now();
-    final currentPeriod = DateFormat('MMMM yyyy', 'id_ID').format(now);
 
     final billAmount = pendingPayment?.amount ?? roomPrice;
 
@@ -61,16 +70,22 @@ class PaymentScreen extends StatelessWidget {
                             height: 42,
                             decoration: BoxDecoration(
                               color: pendingPayment != null
-                                  ? AppTheme.statusYellowBg
+                                  ? (pendingPayment.isOverdue
+                                      ? const Color(0xFFFDE8E8)
+                                      : AppTheme.statusYellowBg)
                                   : AppTheme.statusMintBg,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               pendingPayment != null
-                                  ? Icons.access_time
+                                  ? (pendingPayment.isOverdue
+                                      ? Icons.warning_amber_rounded
+                                      : Icons.access_time)
                                   : Icons.check_circle_outline,
                               color: pendingPayment != null
-                                  ? AppTheme.statusYellowText
+                                  ? (pendingPayment.isOverdue
+                                      ? const Color(0xFFB23A48)
+                                      : AppTheme.statusYellowText)
                                   : AppTheme.statusGreenText,
                               size: 22,
                             ),
@@ -87,10 +102,22 @@ class PaymentScreen extends StatelessWidget {
                                   label: 'Kos',
                                   value: boardingHouse?.name ?? '-',
                                 ),
-                                _DetailLine(
-                                  label: 'Periode',
-                                  value: currentPeriod,
-                                ),
+                                if (pendingPayment != null) ...[
+                                  _DetailLine(
+                                    label: 'Periode',
+                                    value: pendingPayment.billingPeriod.isNotEmpty
+                                        ? pendingPayment.billingPeriod
+                                        : '-',
+                                  ),
+                                  _DetailLine(
+                                    label: 'Jatuh Tempo',
+                                    value: _formatDate(pendingPayment.dueDate),
+                                  ),
+                                  _DetailLine(
+                                    label: 'Batas Overdue',
+                                    value: _formatDate(pendingPayment.overdueDate),
+                                  ),
+                                ],
                                 _DetailLine(
                                   label: 'Tagihan',
                                   value: _formatCurrency(billAmount),
@@ -99,17 +126,24 @@ class PaymentScreen extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    RumaStatusChip(
-                                      label: pendingPayment != null
-                                          ? 'Belum Bayar'
-                                          : 'Lunas',
-                                      backgroundColor: pendingPayment != null
-                                          ? AppTheme.statusYellowBg
-                                          : AppTheme.statusGreenBg,
-                                      textColor: pendingPayment != null
-                                          ? AppTheme.statusYellowText
-                                          : AppTheme.statusGreenText,
-                                    ),
+                                    if (pendingPayment != null && pendingPayment.isOverdue)
+                                      RumaStatusChip(
+                                        label: 'Overdue',
+                                        backgroundColor: const Color(0xFFFDE8E8),
+                                        textColor: const Color(0xFFB23A48),
+                                      )
+                                    else
+                                      RumaStatusChip(
+                                        label: pendingPayment != null
+                                            ? 'Belum Bayar'
+                                            : 'Lunas',
+                                        backgroundColor: pendingPayment != null
+                                            ? AppTheme.statusYellowBg
+                                            : AppTheme.statusGreenBg,
+                                        textColor: pendingPayment != null
+                                            ? AppTheme.statusYellowText
+                                            : AppTheme.statusGreenText,
+                                      ),
                                   ],
                                 ),
                               ],
@@ -118,6 +152,36 @@ class PaymentScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+
+                    // Overdue warning
+                    if (pendingPayment != null && pendingPayment.isOverdue) ...[
+                      const SizedBox(height: 12),
+                      RumaPanel(
+                        backgroundColor: const Color(0xFFFDE8E8),
+                        borderColor: const Color(0xFFF5C6CB),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.warning_rounded,
+                              color: Color(0xFFB23A48),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Tagihan Anda sudah melewati batas jatuh tempo! Segera lakukan pembayaran.',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFB23A48),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     if (pendingPayment != null) ...[
                       const SizedBox(height: 16),
                       const RumaSectionHeader(title: 'Metode Pembayaran (Midtrans Snap)'),
@@ -147,6 +211,21 @@ class PaymentScreen extends StatelessWidget {
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
+                            const SizedBox(height: 4),
+                            if (pendingPayment.daysUntilOverdue > 0)
+                              Text(
+                                'Sisa ${pendingPayment.daysUntilOverdue} hari sebelum overdue',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: pendingPayment.daysUntilOverdue <= 3
+                                          ? const Color(0xFFB23A48)
+                                          : AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                              ),
                             const SizedBox(height: 8),
                             Text(
                               'Pembayaran aman dan otomatis menggunakan gerbang pembayaran Midtrans Sandbox.',
@@ -209,11 +288,119 @@ class PaymentScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+                      // "Bayar Bulan Depan" button - only show when all bills are paid
+                      if (allPaid) ...[
+                        const SizedBox(height: 16),
+                        const RumaSectionHeader(title: 'Bayar di Muka'),
+                        const SizedBox(height: 8),
+                        RumaPanel(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ingin bayar bulan depan sekarang?',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Anda bisa membayar tagihan bulan depan di muka agar tidak perlu khawatir.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                              ),
+                              const SizedBox(height: 14),
+                              const _PayNextMonthButton(),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _PayNextMonthButton extends StatefulWidget {
+  const _PayNextMonthButton();
+
+  @override
+  State<_PayNextMonthButton> createState() => _PayNextMonthButtonState();
+}
+
+class _PayNextMonthButtonState extends State<_PayNextMonthButton> {
+  bool _isLoading = false;
+
+  Future<void> _handlePayNextMonth() async {
+    setState(() => _isLoading = true);
+
+    final provider = context.read<TenantProvider>();
+    final result = await provider.payNextMonth();
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (result != null && result.containsKey('error')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['error'] ?? 'Gagal membuat tagihan bulan depan'),
+          backgroundColor: const Color(0xFFB23A48),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tagihan bulan depan berhasil dibuat! Silakan bayar.'),
+          backgroundColor: Color(0xFF2E7D32),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _isLoading ? null : _handlePayNextMonth,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.olive,
+                ),
+              )
+            : const Icon(Icons.calendar_month_outlined, color: AppTheme.olive),
+        label: Text(
+          _isLoading ? 'Memproses...' : 'Bayar Bulan Depan',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppTheme.olive,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.olive,
+          side: const BorderSide(color: AppTheme.olive, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
     );
   }
 }
@@ -253,21 +440,20 @@ class _MidtransPayButtonState extends State<_MidtransPayButton> {
     final String redirectUrl = snapData['redirect_url'];
     final String orderId = snapData['order_id'];
 
-    final Uri url = Uri.parse(redirectUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-      if (mounted) {
-        _showStatusCheckDialog(orderId);
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak dapat membuka link pembayaran.'),
-            backgroundColor: Color(0xFFB23A48),
-          ),
-        );
-      }
+    if (!mounted) return;
+
+    final needCheckStatus = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MidtransWebViewScreen(
+          url: redirectUrl,
+          orderId: orderId,
+        ),
+      ),
+    );
+
+    if (needCheckStatus == true && mounted) {
+      _showStatusCheckDialog(orderId);
     }
   }
 
