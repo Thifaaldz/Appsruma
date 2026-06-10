@@ -442,7 +442,7 @@ class _MidtransPayButtonState extends State<_MidtransPayButton> {
 
     if (!mounted) return;
 
-    final needCheckStatus = await Navigator.push<bool>(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MidtransWebViewScreen(
@@ -452,17 +452,17 @@ class _MidtransPayButtonState extends State<_MidtransPayButton> {
       ),
     );
 
-    if (needCheckStatus == true && mounted) {
-      _showStatusCheckDialog(orderId);
+    if (mounted) {
+      _showStatusCheckDialog(orderId, widget.paymentId);
     }
   }
 
-  void _showStatusCheckDialog(String orderId) {
+  void _showStatusCheckDialog(String orderId, int paymentId) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return _StatusCheckDialog(orderId: orderId);
+        return _StatusCheckDialog(orderId: orderId, paymentId: paymentId);
       },
     );
   }
@@ -505,9 +505,13 @@ class _MidtransPayButtonState extends State<_MidtransPayButton> {
 }
 
 class _StatusCheckDialog extends StatefulWidget {
-  const _StatusCheckDialog({required this.orderId});
+  const _StatusCheckDialog({
+    required this.orderId,
+    required this.paymentId,
+  });
 
   final String orderId;
+  final int paymentId;
 
   @override
   State<_StatusCheckDialog> createState() => _StatusCheckDialogState();
@@ -531,8 +535,8 @@ class _StatusCheckDialogState extends State<_StatusCheckDialog> {
     setState(() => _isChecking = false);
 
     if (success) {
-      // Find updated payment status in provider
-      final isPaid = provider.payments.any((p) => p.status == 'paid');
+      // Find updated payment status in provider for this specific bill
+      final isPaid = provider.payments.any((p) => p.id == widget.paymentId && p.status == 'paid');
       if (isPaid) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(

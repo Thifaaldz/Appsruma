@@ -192,6 +192,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}
+		ctrl.syncPendingPaymentsWithMidtrans(payments)
 		c.JSON(http.StatusOK, payments)
 		return
 	} else if role == "tenant" {
@@ -206,6 +207,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}
+		ctrl.syncPendingPaymentsWithMidtrans(payments)
 		c.JSON(http.StatusOK, payments)
 		return
 	}
@@ -215,6 +217,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 		return
 	}
+	ctrl.syncPendingPaymentsWithMidtrans(payments)
 	c.JSON(http.StatusOK, payments)
 }
 
@@ -298,6 +301,7 @@ func (ctrl *PaymentController) GetTenantPayments(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tenant payments"})
 		return
 	}
+	ctrl.syncPendingPaymentsWithMidtrans(payments)
 	c.JSON(http.StatusOK, payments)
 }
 
@@ -646,21 +650,18 @@ func (ctrl *PaymentController) MidtransWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
-// CheckPaymentStatus queries Midtrans status API directly to verify the status
-func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
-	orderID := c.Param("orderId") // e.g. RUMA-PAY-1-1628100101
-
+// checkAndUpdateStatus queries Midtrans status API directly and updates the database
+func (ctrl *PaymentController) checkAndUpdateStatus(orderID string) (string, map[string]interface{}, error) {
 	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
 	if serverKey == "" {
 		serverKey = "SB-Mid-server-Jw5gV97y0u-0H1x2z3Y4W5V6"
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("https://api.sandbox.midtrans.com/v2/%s/status", orderID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create status request"})
-		return
+		return "", nil, err
 	}
 
 	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(serverKey+":"))
@@ -670,16 +671,18 @@ func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to Midtrans API"})
-		return
+		return "", nil, err
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, err
+	}
+
 	var statusResp map[string]interface{}
 	if err := json.Unmarshal(respBody, &statusResp); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse Midtrans status response"})
-		return
+		return "", nil, err
 	}
 
 	txStatus, _ := statusResp["transaction_status"].(string)
@@ -707,6 +710,38 @@ func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 				}
 			}
 		}
+	}
+
+	return txStatus, statusResp, nil
+}
+
+// syncPendingPaymentsWithMidtrans updates the status of any pending or overdue payments in-place
+func (ctrl *PaymentController) syncPendingPaymentsWithMidtrans(payments []models.Payment) {
+	for i := range payments {
+		if (payments[i].Status == "pending" || payments[i].Status == "overdue") && payments[i].MidtransOrderID != "" {
+			txStatus, _, err := ctrl.checkAndUpdateStatus(payments[i].MidtransOrderID)
+			if err == nil {
+				if txStatus == "settlement" || txStatus == "capture" {
+					payments[i].Status = "paid"
+					now := time.Now()
+					payments[i].PaidAt = &now
+					payments[i].PaymentDate = now
+				} else if txStatus == "expire" || txStatus == "cancel" || txStatus == "deny" {
+					payments[i].Status = "cancelled"
+				}
+			}
+		}
+	}
+}
+
+// CheckPaymentStatus queries Midtrans status API directly to verify the status
+func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
+	orderID := c.Param("orderId") // e.g. RUMA-PAY-1-1628100101
+
+	_, statusResp, err := ctrl.checkAndUpdateStatus(orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, statusResp)
