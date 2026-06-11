@@ -84,14 +84,26 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
     // Sum of paid payments
-    final paidPayments = paymentProvider.payments
+    final allPaidPayments = paymentProvider.payments
         .where((p) => p.status == 'paid')
         .toList();
-    final incomeValue = paidPayments.fold<double>(
+
+    // Total Pemasukan (all time)
+    final totalIncomeValue = allPaidPayments.fold<double>(
       0,
       (sum, p) => sum + p.amount,
     );
-    final incomeLabel = _formatCurrency(incomeValue);
+    final totalIncomeLabel = _formatCurrency(totalIncomeValue);
+
+    // Pemasukan Bulan Ini
+    final now = DateTime.now();
+    final thisMonthPayments = allPaidPayments.where((p) =>
+        p.paymentDate.month == now.month && p.paymentDate.year == now.year);
+    final thisMonthIncomeValue = thisMonthPayments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
+    final thisMonthIncomeLabel = _formatCurrency(thisMonthIncomeValue);
     final expenseLabel = _formatCurrency(expenseProvider.totalExpenses);
 
     // Count pending payments for reminder
@@ -260,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   OwnerMetricCard(
                     icon: Icons.bar_chart_outlined,
                     title: 'Pemasukan Bulan Ini',
-                    value: incomeLabel,
+                    value: thisMonthIncomeLabel,
                   ),
                   // Pengeluaran - taps to expense form
                   _TappableMetricCard(
@@ -294,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                     ),
                     Text(
-                      incomeLabel,
+                      totalIncomeLabel,
                       style:
                           Theme.of(context).textTheme.displayLarge?.copyWith(
                                 color: AppTheme.lightBeige,
