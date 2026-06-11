@@ -16,6 +16,8 @@ func SetupRoutes(r *gin.Engine) {
 	paymentRepo := repositories.NewPaymentRepository()
 	complaintRepo := repositories.NewComplaintRepository()
 	bhRepo := repositories.NewBoardingHouseRepository()
+	expenseRepo := repositories.NewExpenseRepository()
+	announcementRepo := repositories.NewAnnouncementRepository()
 
 	authService := services.NewAuthService(userRepo)
 
@@ -25,6 +27,8 @@ func SetupRoutes(r *gin.Engine) {
 	paymentController := controllers.NewPaymentController(paymentRepo)
 	complaintController := controllers.NewComplaintController(complaintRepo)
 	bhController := controllers.NewBoardingHouseController(bhRepo)
+	expenseController := controllers.NewExpenseController(expenseRepo)
+	announcementController := controllers.NewAnnouncementController(announcementRepo)
 
 	api := r.Group("/api")
 	{
@@ -109,6 +113,28 @@ func SetupRoutes(r *gin.Engine) {
 				complaints.GET("", complaintController.GetAllComplaints)
 				complaints.POST("", complaintController.CreateComplaint)
 				complaints.PUT("/:id", complaintController.UpdateComplaintStatus)
+			}
+
+			// Expenses (Owner only)
+			expenses := protected.Group("/expenses")
+			expenses.Use(middleware.RoleMiddleware("owner", "admin"))
+			{
+				expenses.GET("", expenseController.GetMyExpenses)
+				expenses.POST("", expenseController.CreateExpense)
+				expenses.DELETE("/:id", expenseController.DeleteExpense)
+			}
+
+			// Announcements
+			announcements := protected.Group("/announcements")
+			{
+				announcements.GET("", announcementController.GetAnnouncements)
+
+				ownerOnly := announcements.Group("")
+				ownerOnly.Use(middleware.RoleMiddleware("owner", "admin"))
+				{
+					ownerOnly.POST("", announcementController.CreateAnnouncement)
+					ownerOnly.DELETE("/:id", announcementController.DeleteAnnouncement)
+				}
 			}
 		}
 	}

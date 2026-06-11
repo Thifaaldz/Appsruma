@@ -31,6 +31,12 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(
         onPayNow: () => _navigateTo(1),
         onOpenHistory: () => _navigateTo(3),
+        onOpenComplaint: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ComplaintScreen()),
+          );
+        },
+        onOpenNotifications: () => _navigateTo(2),
       ),
       const PaymentScreen(),
       const NotificationScreen(),

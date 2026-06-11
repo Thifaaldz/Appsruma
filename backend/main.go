@@ -22,6 +22,8 @@ func main() {
 		&models.Tenant{},
 		&models.Payment{},
 		&models.Complaint{},
+		&models.Expense{},
+		&models.Announcement{},
 	)
 	if err != nil {
 		fmt.Println("Migration failed:", err)

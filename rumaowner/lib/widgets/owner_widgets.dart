@@ -526,8 +526,8 @@ class OwnerBottomNav extends StatelessWidget {
     const items = [
       Icons.home,
       Icons.people,
-      Icons.edit_document,
-      Icons.notifications_active,
+      Icons.campaign,
+      Icons.warning_amber,
       Icons.person,
     ];
 

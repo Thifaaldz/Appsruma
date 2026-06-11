@@ -188,7 +188,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 			EnsureNextBillGenerated(tid)
 		}
 		var payments []models.Payment
-		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id IN ?", tenantIDs).Order("due_date desc").Find(&payments).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room.BoardingHouse").Where("tenant_id IN ?", tenantIDs).Order("due_date desc").Find(&payments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}
@@ -203,7 +203,7 @@ func (ctrl *PaymentController) GetAllPayments(c *gin.Context) {
 		}
 		EnsureNextBillGenerated(tenant.ID)
 		var payments []models.Payment
-		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id = ?", tenant.ID).Order("due_date desc").Find(&payments).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room.BoardingHouse").Where("tenant_id = ?", tenant.ID).Order("due_date desc").Find(&payments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 			return
 		}

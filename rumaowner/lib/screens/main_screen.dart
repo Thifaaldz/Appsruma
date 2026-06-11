@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
 import '../widgets/owner_widgets.dart';
+import 'announcement_screen.dart';
 import 'complaint_screen.dart';
+import 'expense_form_screen.dart';
 import 'finance_screen.dart';
 import 'home_screen.dart';
+import 'payment_bill_screen.dart';
 import 'profile_screen.dart';
 import 'room_screen.dart';
 import 'tenant_screen.dart';
@@ -28,16 +31,42 @@ class _MainScreenState extends State<MainScreen> {
     final pages = <Widget>[
       HomeScreen(
         onOpenTenants: () => _navigateTo(1),
-        onOpenRooms: () => _navigateTo(2),
+        onOpenRooms: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RoomScreen()),
+          );
+        },
         onOpenComplaints: () => _navigateTo(3),
+        onOpenPayments: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PaymentBillScreen()),
+          );
+        },
         onOpenFinance: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const FinanceScreen()));
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const FinanceScreen()),
+          );
+        },
+        onOpenExpense: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ExpenseFormScreen()),
+          );
+        },
+        onOpenKosList: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RoomScreen()),
+          );
+        },
+        onOpenVacantRooms: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const RoomScreen(filterVacant: true),
+            ),
+          );
         },
       ),
       const TenantScreen(),
-      const RoomScreen(),
+      const AnnouncementScreen(),
       const ComplaintScreen(),
       const ProfileScreen(),
     ];

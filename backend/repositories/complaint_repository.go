@@ -25,13 +25,13 @@ func (r *complaintRepository) Create(complaint *models.Complaint) error {
 
 func (r *complaintRepository) FindAll() ([]models.Complaint, error) {
 	var complaints []models.Complaint
-	err := config.DB.Preload("Tenant.User").Find(&complaints).Error
+	err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Find(&complaints).Error
 	return complaints, err
 }
 
 func (r *complaintRepository) FindByID(id uint) (*models.Complaint, error) {
 	var complaint models.Complaint
-	err := config.DB.Preload("Tenant.User").First(&complaint, id).Error
+	err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").First(&complaint, id).Error
 	return &complaint, err
 }
 

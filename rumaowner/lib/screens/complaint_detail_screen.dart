@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -214,6 +216,24 @@ class _ComplaintImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (photoUrl.isNotEmpty) {
+      if (photoUrl.startsWith('data:image')) {
+        final commaIndex = photoUrl.indexOf(',');
+        if (commaIndex != -1) {
+          try {
+            final bytes = base64Decode(photoUrl.substring(commaIndex + 1));
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: Image.memory(
+                bytes,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            );
+          } catch (_) {}
+        }
+      }
+
       return ClipRRect(
         borderRadius: BorderRadius.circular(2),
         child: Image.network(

@@ -3,32 +3,30 @@ class Complaint {
   final int tenantId;
   final String title;
   final String description;
+  final String photoUrl;
   final String status;
 
   Complaint({
     required this.id,
-    required this.tenantId,
+    this.tenantId = 0,
     required this.title,
     required this.description,
-    required this.status,
+    this.photoUrl = '',
+    this.status = 'pending',
   });
 
   factory Complaint.fromJson(Map<String, dynamic> json) {
     return Complaint(
-      id: json['id'],
-      tenantId: json['tenant_id'],
-      title: json['title'],
-      description: json['description'],
-      status: json['status'],
+      id: json['id'] ?? 0,
+      tenantId: json['tenant_id'] ?? 0,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      photoUrl: json['photo_url'] ?? '',
+      status: json['status'] ?? 'pending',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'tenant_id': tenantId,
-      'title': title,
-      'description': description,
-      'status': status,
-    };
+    return {'title': title, 'description': description, 'photo_url': photoUrl};
   }
 }

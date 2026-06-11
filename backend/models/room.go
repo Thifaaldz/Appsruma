@@ -9,6 +9,7 @@ import (
 type Room struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
 	BoardingHouseID uint           `json:"boarding_house_id"`
+	BoardingHouse   BoardingHouse  `gorm:"foreignKey:BoardingHouseID" json:"boarding_house"`
 	RoomNumber      string         `gorm:"size:20" json:"room_number"`
 	Price           float64        `json:"price"`
 	Status          string         `gorm:"size:20" json:"status"` // available, occupied, maintenance

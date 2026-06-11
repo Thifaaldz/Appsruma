@@ -34,7 +34,7 @@ func (ctrl *ComplaintController) GetAllComplaints(c *gin.Context) {
 			return
 		}
 		var complaints []models.Complaint
-		if err := config.DB.Preload("Tenant.User").Where("tenant_id IN ?", tenantIDs).Find(&complaints).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id IN ?", tenantIDs).Find(&complaints).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch complaints"})
 			return
 		}
@@ -47,7 +47,7 @@ func (ctrl *ComplaintController) GetAllComplaints(c *gin.Context) {
 			return
 		}
 		var complaints []models.Complaint
-		if err := config.DB.Preload("Tenant.User").Where("tenant_id = ?", tenant.ID).Find(&complaints).Error; err != nil {
+		if err := config.DB.Preload("Tenant.User").Preload("Tenant.Room").Where("tenant_id = ?", tenant.ID).Find(&complaints).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch complaints"})
 			return
 		}
@@ -67,19 +67,40 @@ func (ctrl *ComplaintController) CreateComplaint(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var complaint models.Complaint
-	if err := c.ShouldBindJSON(&complaint); err != nil {
+	var request struct {
+		TenantID    uint   `json:"tenant_id"`
+		Title       string `json:"title" binding:"required"`
+		Description string `json:"description" binding:"required"`
+		PhotoUrl    string `json:"photo_url"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if role == "tenant" {
-		tenant, err := utils.GetTenantByUserID(userID.(uint))
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Tenant record not found"})
-			return
-		}
-		complaint.TenantID = tenant.ID
+	complaint := models.Complaint{
+		TenantID:    request.TenantID,
+		Title:       request.Title,
+		Description: request.Description,
+		PhotoUrl:    request.PhotoUrl,
+		Status:      "pending",
+	}
+
+	if role != "tenant" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only tenant users can create complaints"})
+		return
+	}
+
+	tenant, err := utils.GetTenantByUserID(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tenant record not found"})
+		return
+	}
+	complaint.TenantID = tenant.ID
+
+	if complaint.TenantID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tenant record not found"})
+		return
 	}
 
 	if err := ctrl.complaintRepo.Create(&complaint); err != nil {

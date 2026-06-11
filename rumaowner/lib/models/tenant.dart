@@ -9,6 +9,7 @@ class Tenant {
   final String? userName;
   final String? userEmail;
   final String? roomNumber;
+  final int? boardingHouseId;
 
   // Fields for optional account creation during assignment
   final String? name;
@@ -26,6 +27,7 @@ class Tenant {
     this.userName,
     this.userEmail,
     this.roomNumber,
+    this.boardingHouseId,
     this.name,
     this.email,
     this.password,
@@ -35,12 +37,14 @@ class Tenant {
     String? userName;
     String? userEmail;
     String? roomNumber;
+    int? boardingHouseId;
     if (json['user'] != null) {
       userName = json['user']['name'];
       userEmail = json['user']['email'];
     }
     if (json['room'] != null) {
       roomNumber = json['room']['room_number'];
+      boardingHouseId = json['room']['boarding_house_id'];
     }
     return Tenant(
       id: json['id'] ?? 0,
@@ -59,6 +63,7 @@ class Tenant {
       userName: userName,
       userEmail: userEmail,
       roomNumber: roomNumber,
+      boardingHouseId: boardingHouseId,
     );
   }
 

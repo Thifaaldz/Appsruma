@@ -11,10 +11,14 @@ class HomeScreen extends StatelessWidget {
     super.key,
     required this.onPayNow,
     required this.onOpenHistory,
+    required this.onOpenComplaint,
+    required this.onOpenNotifications,
   });
 
   final VoidCallback onPayNow;
   final VoidCallback onOpenHistory;
+  final VoidCallback onOpenComplaint;
+  final VoidCallback onOpenNotifications;
 
   String _formatCurrency(double amount) {
     final formatter = NumberFormat.currency(
@@ -253,7 +257,87 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     RumaPrimaryButton(label: 'Bayar Sekarang', onPressed: onPayNow),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: onOpenComplaint,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.olive, width: 2),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Laporkan Keluhan',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppTheme.olive,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 18),
+                    if (tp.announcements.isNotEmpty) ...[
+                      RumaSectionHeader(
+                        title: 'Notifikasi & Pengumuman',
+                        actionLabel: 'Lihat Semua',
+                        onAction: onOpenNotifications,
+                      ),
+                      const SizedBox(height: 10),
+                      ...tp.announcements.take(2).map((ann) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: RumaPanel(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F4FD),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.campaign_outlined,
+                                        size: 18, color: AppTheme.textDark),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          ann.title,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          ann.content,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: AppTheme.textDark,
+                                                fontSize: 12,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
+                    ],
+                    const SizedBox(height: 8),
                     if (payments.isNotEmpty) ...[
                       RumaSectionHeader(
                         title: 'Riwayat Terakhir',

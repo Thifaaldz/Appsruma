@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/tenant_provider.dart';
 import 'providers/boarding_house_provider.dart';
 import 'providers/complaint_provider.dart';
 import 'providers/payment_provider.dart';
+import 'providers/expense_provider.dart';
+import 'providers/announcement_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'core/theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
+  
   runApp(
     MultiProvider(
       providers: [
@@ -21,6 +28,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => BoardingHouseProvider()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
       ],
       child: const MyApp(),
     ),

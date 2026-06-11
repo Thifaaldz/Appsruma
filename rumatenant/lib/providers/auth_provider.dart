@@ -20,6 +20,9 @@ class AuthProvider with ChangeNotifier {
   User? _user;
   User? get user => _user;
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   AuthProvider() {
     ApiClient.onUnauthorized = () {
       logout();
@@ -28,6 +31,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -37,13 +41,24 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        _token = response.data['token'];
-        await _storage.write(key: 'token', value: _token);
-
-        // Store user data from login response
+        User? loginUser;
         if (response.data['user'] != null) {
-          _user = User.fromJson(response.data['user']);
+          loginUser = User.fromJson(response.data['user']);
         }
+
+        if (loginUser?.role != 'tenant') {
+          _token = null;
+          _user = null;
+          await _storage.delete(key: 'token');
+          _errorMessage = 'Gunakan akun penghuni untuk masuk ke aplikasi ini.';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+
+        _token = response.data['token'];
+        _user = loginUser;
+        await _storage.write(key: 'token', value: _token);
 
         _isLoading = false;
         notifyListeners();
@@ -53,6 +68,7 @@ class AuthProvider with ChangeNotifier {
       print(e);
     }
 
+    _errorMessage = 'Email atau kata sandi salah.';
     _isLoading = false;
     notifyListeners();
     return false;
@@ -62,6 +78,7 @@ class AuthProvider with ChangeNotifier {
     await _storage.delete(key: 'token');
     _token = null;
     _user = null;
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -76,6 +93,9 @@ class AuthProvider with ChangeNotifier {
         final response = await _apiClient.dio.get('/auth/me');
         if (response.statusCode == 200) {
           _user = User.fromJson(response.data);
+          if (_user?.role != 'tenant') {
+            await logout();
+          }
         } else {
           await logout();
         }

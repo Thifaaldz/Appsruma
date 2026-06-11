@@ -211,9 +211,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                           if (!success) {
                                             messenger.showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Email atau kata sandi salah.',
+                                                  authProvider.errorMessage ??
+                                                      'Email atau kata sandi salah.',
                                                 ),
                                               ),
                                             );

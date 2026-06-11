@@ -6,6 +6,7 @@ import '../models/room.dart';
 import '../models/boarding_house.dart';
 import '../models/payment.dart';
 import '../models/user.dart';
+import '../models/announcement.dart';
 
 class TenantProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -28,7 +29,10 @@ class TenantProvider with ChangeNotifier {
   List<Payment> _payments = [];
   List<Payment> get payments => _payments;
 
-  /// Fetches all tenant data: user profile, tenant record, room, boarding house, payments
+  List<Announcement> _announcements = [];
+  List<Announcement> get announcements => _announcements;
+
+  /// Fetches all tenant data: user profile, tenant record, room, boarding house, payments, announcements
   Future<void> fetchAll() async {
     _isLoading = true;
     notifyListeners();
@@ -38,6 +42,7 @@ class TenantProvider with ChangeNotifier {
       _fetchTenantInfo(),
       _fetchBoardingHouse(),
       _fetchPayments(),
+      _fetchAnnouncements(),
     ]);
 
     _isLoading = false;
@@ -179,6 +184,19 @@ class TenantProvider with ChangeNotifier {
     return {'error': 'Gagal membuat tagihan bulan depan'};
   }
 
+  /// Fetch announcements/notifications
+  Future<void> _fetchAnnouncements() async {
+    try {
+      final response = await _apiClient.dio.get('/announcements');
+      if (response.statusCode == 200) {
+        final list = response.data as List;
+        _announcements = list.map((e) => Announcement.fromJson(e)).toList();
+      }
+    } catch (e) {
+      debugPrint('TenantProvider._fetchAnnouncements error: $e');
+    }
+  }
+
   /// Get all pending payments (including overdue)
   List<Payment> get pendingPayments {
     return _payments.where((p) => p.isPending).toList();
@@ -201,6 +219,7 @@ class TenantProvider with ChangeNotifier {
     _boardingHouse = null;
     _user = null;
     _payments = [];
+    _announcements = [];
     notifyListeners();
   }
 }

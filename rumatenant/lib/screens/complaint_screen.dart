@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
@@ -15,9 +18,11 @@ class ComplaintScreen extends StatefulWidget {
 }
 
 class _ComplaintScreenState extends State<ComplaintScreen> {
+  final _imagePicker = ImagePicker();
   final _descriptionController = TextEditingController();
   String _activeTab = 'Buat Laporan';
   String _selectedCategory = 'AC';
+  String _photoUrl = '';
 
   @override
   void initState() {
@@ -33,6 +38,65 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 82,
+      );
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _photoUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Gagal memilih foto.')));
+    }
+  }
+
+  Widget _photoPreview() {
+    if (_photoUrl.isEmpty) {
+      return Container(
+        height: 160,
+        decoration: BoxDecoration(
+          color: const Color(0xFFD9D9D9),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+
+    final commaIndex = _photoUrl.indexOf(',');
+    final bytes = commaIndex >= 0
+        ? base64Decode(_photoUrl.substring(commaIndex + 1))
+        : null;
+
+    if (bytes == null) {
+      return Container(
+        height: 160,
+        decoration: BoxDecoration(
+          color: const Color(0xFFD9D9D9),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.memory(
+        bytes,
+        height: 160,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      ),
+    );
   }
 
   @override
@@ -167,33 +231,33 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(
-                            child: Container(
-                              height: 160,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD9D9D9),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
+                          Expanded(child: _photoPreview()),
                           const SizedBox(width: 14),
                           Expanded(
-                            child: Container(
-                              height: 160,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD9D9D9),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Tambah Foto',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        color: AppTheme.olive,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                            child: InkWell(
+                              onTap: _pickPhoto,
+                              borderRadius: BorderRadius.circular(4),
+                              child: Container(
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD9D9D9),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _photoUrl.isEmpty
+                                        ? 'Tambah Foto'
+                                        : 'Ganti Foto',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: AppTheme.olive,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -220,10 +284,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                         .addComplaint(
                           Complaint(
                             id: 0,
-                            tenantId: 0,
                             title: _selectedCategory,
                             description: description,
-                            status: 'pending',
+                            photoUrl: _photoUrl,
                           ),
                         );
 
@@ -239,7 +302,10 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       );
                       if (success) {
                         _descriptionController.clear();
-                        setState(() => _activeTab = 'Riwayat Laporan');
+                        setState(() {
+                          _photoUrl = '';
+                          _activeTab = 'Riwayat Laporan';
+                        });
                       }
                     }
                   },

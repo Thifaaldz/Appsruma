@@ -11,7 +11,9 @@ import 'property_detail_screen.dart';
 import 'room_form_screen.dart';
 
 class RoomScreen extends StatefulWidget {
-  const RoomScreen({super.key});
+  const RoomScreen({super.key, this.filterVacant = false});
+
+  final bool filterVacant;
 
   @override
   State<RoomScreen> createState() => _RoomScreenState();
@@ -114,14 +116,22 @@ class _RoomScreenState extends State<RoomScreen> {
 
     final boardingHouses = bhProvider.boardingHouses;
 
-    final rooms = List<Room>.from(roomProvider.rooms)
+    var allRooms = List<Room>.from(roomProvider.rooms);
+    if (widget.filterVacant) {
+      allRooms = allRooms
+          .where((r) => r.status.toLowerCase() == 'available')
+          .toList();
+    }
+    final rooms = allRooms
       ..sort((a, b) {
         final houseCompare = a.boardingHouseId.compareTo(b.boardingHouseId);
         if (houseCompare != 0) return houseCompare;
         return a.roomNumber.compareTo(b.roomNumber);
       });
 
-    return SafeArea(
+    return Scaffold(
+      backgroundColor: AppTheme.lightBeige,
+      body: SafeArea(
       bottom: false,
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -129,6 +139,25 @@ class _RoomScreenState extends State<RoomScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Kembali',
+                ),
+                Expanded(
+                  child: Text(
+                    widget.filterVacant ? 'Kamar Kosong' : 'Daftar Kos & Kamar',
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -495,6 +524,7 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
           ],
         ),
+      ),
       ),
     );
   }
