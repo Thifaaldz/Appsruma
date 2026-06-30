@@ -6,16 +6,22 @@ class ComplaintProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   List<Complaint> _complaints = [];
   bool _isLoading = false;
+  int? _lastBoardingHouseId;
 
   List<Complaint> get complaints => _complaints;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchComplaints() async {
+  Future<void> fetchComplaints({int? boardingHouseId}) async {
     _isLoading = true;
+    _lastBoardingHouseId = boardingHouseId;
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.get('/complaints');
+      final params = boardingHouseId != null
+          ? {'boarding_house_id': boardingHouseId.toString()}
+          : null;
+      final response = await _apiClient.dio.get('/complaints',
+          queryParameters: params);
       if (response.statusCode == 200) {
         _complaints = (response.data as List)
             .map((e) => Complaint.fromJson(e))
@@ -38,7 +44,7 @@ class ComplaintProvider with ChangeNotifier {
         data: {'status': status},
       );
       if (response.statusCode == 200) {
-        await fetchComplaints();
+        await fetchComplaints(boardingHouseId: _lastBoardingHouseId);
         _isLoading = false;
         notifyListeners();
         return true;

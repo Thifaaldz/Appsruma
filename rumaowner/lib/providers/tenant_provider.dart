@@ -7,17 +7,23 @@ class TenantProvider with ChangeNotifier {
   List<Tenant> _tenants = [];
   List<Map<String, dynamic>> _tenantUsers = [];
   bool _isLoading = false;
+  int? _lastBoardingHouseId;
 
   List<Tenant> get tenants => _tenants;
   List<Map<String, dynamic>> get tenantUsers => _tenantUsers;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchTenants() async {
+  Future<void> fetchTenants({int? boardingHouseId}) async {
     _isLoading = true;
+    _lastBoardingHouseId = boardingHouseId;
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.get('/tenants');
+      final params = boardingHouseId != null
+          ? {'boarding_house_id': boardingHouseId.toString()}
+          : null;
+      final response = await _apiClient.dio.get('/tenants',
+          queryParameters: params);
       if (response.statusCode == 200) {
         _tenants = (response.data as List)
             .map((e) => Tenant.fromJson(e))
@@ -50,7 +56,7 @@ class TenantProvider with ChangeNotifier {
         data: tenant.toJson(),
       );
       if (response.statusCode == 201) {
-        await fetchTenants();
+        await fetchTenants(boardingHouseId: _lastBoardingHouseId);
         return true;
       }
     } catch (e) {

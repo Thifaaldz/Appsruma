@@ -8,6 +8,7 @@ import (
 type ExpenseRepository interface {
 	Create(expense *models.Expense) error
 	FindByOwnerID(ownerID uint) ([]models.Expense, error)
+	FindByOwnerAndBoardingHouse(ownerID uint, boardingHouseID uint) ([]models.Expense, error)
 	FindByID(id uint) (*models.Expense, error)
 	Update(expense *models.Expense) error
 	Delete(id uint) error
@@ -26,6 +27,12 @@ func (r *expenseRepository) Create(expense *models.Expense) error {
 func (r *expenseRepository) FindByOwnerID(ownerID uint) ([]models.Expense, error) {
 	var expenses []models.Expense
 	err := config.DB.Where("owner_id = ?", ownerID).Order("date desc").Find(&expenses).Error
+	return expenses, err
+}
+
+func (r *expenseRepository) FindByOwnerAndBoardingHouse(ownerID uint, boardingHouseID uint) ([]models.Expense, error) {
+	var expenses []models.Expense
+	err := config.DB.Where("owner_id = ? AND boarding_house_id = ?", ownerID, boardingHouseID).Order("date desc").Find(&expenses).Error
 	return expenses, err
 }
 

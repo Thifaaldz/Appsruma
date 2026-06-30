@@ -24,17 +24,35 @@ func (ctrl *RoomController) GetAllRooms(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	if role == "owner" {
-		// Ensure they have at least one boarding house (default)
-		_, err := utils.GetOrCreateDefaultBoardingHouse(userID.(uint))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
-			return
-		}
+		// Optional filter: ?boarding_house_id=X
+		bhIDStr := c.Query("boarding_house_id")
 
 		var bhIDs []uint
-		if err := config.DB.Model(&models.BoardingHouse{}).Where("owner_id = ?", userID.(uint)).Pluck("id", &bhIDs).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch boarding houses"})
-			return
+		if bhIDStr != "" {
+			// Filter by specific boarding house — verify ownership first
+			bhID, err := strconv.Atoi(bhIDStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid boarding_house_id"})
+				return
+			}
+			var count int64
+			config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", uint(bhID), userID.(uint)).Count(&count)
+			if count == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+			bhIDs = []uint{uint(bhID)}
+		} else {
+			// Ensure they have at least one boarding house (default)
+			_, err := utils.GetOrCreateDefaultBoardingHouse(userID.(uint))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
+				return
+			}
+			if err := config.DB.Model(&models.BoardingHouse{}).Where("owner_id = ?", userID.(uint)).Pluck("id", &bhIDs).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch boarding houses"})
+				return
+			}
 		}
 
 		var rooms []models.Room

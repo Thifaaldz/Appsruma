@@ -33,8 +33,9 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
-      context.read<RoomProvider>().fetchRooms();
+      context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
     });
   }
 
@@ -63,6 +64,7 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     }
 
     setState(() => _isLoading = true);
+    final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
     final success = await context.read<TenantProvider>().addTenant(
       Tenant(
         id: 0,
@@ -78,7 +80,7 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     );
 
     if (success && mounted) {
-      await context.read<RoomProvider>().fetchRooms();
+      await context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
     }
 
     if (!mounted) return;
@@ -127,12 +129,13 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     final bhProvider = context.watch<BoardingHouseProvider>();
     final roomProvider = context.watch<RoomProvider>();
     final boardingHouses = bhProvider.boardingHouses;
+    final selectedBh = bhProvider.selectedBoardingHouse;
 
     if (boardingHouses.isNotEmpty && !_hasSyncedSelection) {
       _hasSyncedSelection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        setState(() => _selectedHouseId = boardingHouses.first.id);
+        setState(() => _selectedHouseId = selectedBh?.id ?? boardingHouses.first.id);
       });
     }
 

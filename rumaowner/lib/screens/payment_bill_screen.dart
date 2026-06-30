@@ -27,7 +27,8 @@ class _PaymentBillScreenState extends State<PaymentBillScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<PaymentProvider>().fetchPayments();
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
     });
   }
@@ -99,6 +100,7 @@ class _PaymentBillScreenState extends State<PaymentBillScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<PaymentProvider>();
     final bhProvider = context.watch<BoardingHouseProvider>();
+    final selectedBh = bhProvider.selectedBoardingHouse;
     final monthOptions = _monthOptions(provider.payments);
     final currentMonth =
         _selectedMonth ??
@@ -113,7 +115,10 @@ class _PaymentBillScreenState extends State<PaymentBillScreen> {
         bottom: false,
         child: RefreshIndicator(
           color: AppTheme.darkOlive,
-          onRefresh: provider.fetchPayments,
+          onRefresh: () async {
+            final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+            await context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+          },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -185,29 +190,31 @@ class _PaymentBillScreenState extends State<PaymentBillScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _FilterChip(
-                      label: 'Semua Kos',
-                      isSelected: _propertyFilter == null,
-                      onSelected: (val) => setState(() => _propertyFilter = null),
-                    ),
-                    ...bhProvider.boardingHouses.map(
-                      (bh) => Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: _FilterChip(
-                          label: bh.name,
-                          isSelected: _propertyFilter == bh.id,
-                          onSelected: (val) => setState(() => _propertyFilter = bh.id),
+              if (selectedBh == null) ...[
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: 'Semua Kos',
+                        isSelected: _propertyFilter == null,
+                        onSelected: (val) => setState(() => _propertyFilter = null),
+                      ),
+                      ...bhProvider.boardingHouses.map(
+                        (bh) => Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: _FilterChip(
+                            label: bh.name,
+                            isSelected: _propertyFilter == bh.id,
+                            onSelected: (val) => setState(() => _propertyFilter = bh.id),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 18),
               if (provider.isLoading)
                 const Padding(

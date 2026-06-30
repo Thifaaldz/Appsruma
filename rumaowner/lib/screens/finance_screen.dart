@@ -10,6 +10,7 @@ import '../models/payment.dart';
 import '../models/expense.dart';
 import '../providers/payment_provider.dart';
 import '../providers/expense_provider.dart';
+import '../providers/boarding_house_provider.dart';
 import '../widgets/owner_widgets.dart';
 
 class FinanceScreen extends StatefulWidget {
@@ -36,8 +37,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<PaymentProvider>().fetchPayments();
-      context.read<ExpenseProvider>().fetchExpenses();
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+      context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
     });
   }
 
@@ -241,8 +243,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () async {
-            await context.read<PaymentProvider>().fetchPayments();
-            await context.read<ExpenseProvider>().fetchExpenses();
+            final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+            await context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+            await context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
           },
           color: AppTheme.darkOlive,
           child: SingleChildScrollView(

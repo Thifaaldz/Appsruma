@@ -45,12 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Future.microtask(() {
       if (!mounted) return;
       context.read<AuthProvider>().fetchProfile();
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
-      context.read<RoomProvider>().fetchRooms();
-      context.read<TenantProvider>().fetchTenants();
-      context.read<ComplaintProvider>().fetchComplaints();
-      context.read<PaymentProvider>().fetchPayments();
-      context.read<ExpenseProvider>().fetchExpenses();
+      context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
+      context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
+      context.read<ComplaintProvider>().fetchComplaints(boardingHouseId: bhId);
+      context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+      context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
     });
   }
 
@@ -72,16 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final expenseProvider = context.watch<ExpenseProvider>();
     final user = context.watch<AuthProvider>().currentUser;
     final ownerName = user?.name.isNotEmpty == true ? user!.name : 'Owner';
+    final selectedBh = bhProvider.selectedBoardingHouse;
 
-    final totalKos = bhProvider.boardingHouses.length;
     final rooms = roomProvider.rooms;
     final vacantRooms = rooms.isNotEmpty
         ? rooms.where((room) => room.status.toLowerCase() == 'available').length
-        : bhProvider.boardingHouses.fold<int>(
-            0,
-            (sum, house) =>
-                sum + (house.vacantRooms > 0 ? house.vacantRooms : 0),
-          );
+        : (selectedBh?.vacantRooms ?? 0);
 
     // Sum of paid payments
     final allPaidPayments = paymentProvider.payments
@@ -122,17 +119,18 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: () async {
           await context.read<AuthProvider>().fetchProfile();
           if (!mounted) return;
+          final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
           await context.read<BoardingHouseProvider>().fetchBoardingHouses();
           if (!mounted) return;
-          await context.read<RoomProvider>().fetchRooms();
+          await context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<TenantProvider>().fetchTenants();
+          await context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<ComplaintProvider>().fetchComplaints();
+          await context.read<ComplaintProvider>().fetchComplaints(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<PaymentProvider>().fetchPayments();
+          await context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<ExpenseProvider>().fetchExpenses();
+          await context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
         },
         color: AppTheme.darkOlive,
         child: SingleChildScrollView(
@@ -166,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(
-                                  fontSize: 22,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -176,38 +174,51 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .textTheme
                                 .displayLarge
                                 ?.copyWith(
-                                  fontSize: 26,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w800,
                                 ),
                           ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.home_work, size: 16, color: AppTheme.accent),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  selectedBh?.name ?? 'Kos Belum Terpilih',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: AppTheme.darkOlive,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () {
+                                  context.read<BoardingHouseProvider>().clearSelection();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppTheme.accent),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Ganti',
+                                    style: TextStyle(
+                                      color: AppTheme.accent,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
-                      ),
-                    ),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.darkOlive,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.search,
-                        color: AppTheme.lightBeige,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.darkOlive,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_none,
-                        color: AppTheme.lightBeige,
-                        size: 20,
                       ),
                     ),
                   ],
@@ -254,16 +265,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
                 children: [
-                  // Total Kos - taps to kos list
+                  // Total Kamar
                   _TappableMetricCard(
-                    icon: Icons.home_outlined,
-                    title: 'Total Kos',
-                    value: '$totalKos Kos',
-                    onTap: widget.onOpenKosList,
+                    icon: Icons.meeting_room_outlined,
+                    title: 'Total Kamar',
+                    value: '${rooms.length} Kamar',
+                    onTap: widget.onOpenRooms,
                   ),
                   // Kamar Kosong - taps to filtered vacant rooms
                   _TappableMetricCard(
-                    icon: Icons.meeting_room_outlined,
+                    icon: Icons.vpn_key_outlined,
                     title: 'Kamar Kosong',
                     value: '$vacantRooms Kosong',
                     onTap: widget.onOpenVacantRooms,
@@ -301,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Total Pemasukan',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AppTheme.lightBeige,
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.w500,
                           ),
                     ),
@@ -310,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style:
                           Theme.of(context).textTheme.displayLarge?.copyWith(
                                 color: AppTheme.lightBeige,
-                                fontSize: 26,
+                                fontSize: 24,
                                 fontWeight: FontWeight.w700,
                               ),
                     ),
@@ -362,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Pengingat Jatuh tempo!',
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                   ),
                         ),
@@ -389,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Keluhan Baru!',
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                   ),
                         ),

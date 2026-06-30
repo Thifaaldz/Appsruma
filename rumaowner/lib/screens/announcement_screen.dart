@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
 import '../models/announcement.dart';
-import '../models/payment.dart';
 import '../providers/announcement_provider.dart';
 import '../providers/payment_provider.dart';
 import '../widgets/owner_widgets.dart';

@@ -13,6 +13,7 @@ import 'providers/announcement_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/boarding_house_selection_screen.dart';
 import 'core/theme.dart';
 
 void main() async {
@@ -74,10 +75,26 @@ class _StartupGateState extends State<StartupGate> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final selectedBh = context.watch<BoardingHouseProvider>().selectedBoardingHouse;
     final showTarget = _allowTransition && !auth.isChecking;
-    final child = showTarget
-        ? (auth.token != null ? const MainScreen() : const LoginScreen())
-        : const SplashScreen();
+
+    Widget targetScreen;
+    String targetKey;
+    if (auth.token != null) {
+      if (selectedBh != null) {
+        targetScreen = const MainScreen();
+        targetKey = 'main';
+      } else {
+        targetScreen = const BoardingHouseSelectionScreen();
+        targetKey = 'select_bh';
+      }
+    } else {
+      targetScreen = const LoginScreen();
+      targetKey = 'login';
+    }
+
+    final child = showTarget ? targetScreen : const SplashScreen();
+    final currentKey = showTarget ? targetKey : 'splash';
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 550),
@@ -95,9 +112,7 @@ class _StartupGateState extends State<StartupGate> {
         );
       },
       child: KeyedSubtree(
-        key: ValueKey<String>(
-          showTarget ? (auth.token != null ? 'main' : 'login') : 'splash',
-        ),
+        key: ValueKey<String>(currentKey),
         child: child,
       ),
     );

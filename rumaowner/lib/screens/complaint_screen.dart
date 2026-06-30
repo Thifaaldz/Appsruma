@@ -5,6 +5,8 @@ import '../providers/complaint_provider.dart';
 import '../widgets/owner_widgets.dart';
 import 'complaint_detail_screen.dart';
 
+import '../providers/boarding_house_provider.dart';
+
 class ComplaintScreen extends StatefulWidget {
   const ComplaintScreen({super.key});
 
@@ -21,7 +23,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     super.initState();
     Future.microtask(() {
       if (mounted) {
-        context.read<ComplaintProvider>().fetchComplaints();
+        final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+        context.read<ComplaintProvider>().fetchComplaints(boardingHouseId: bhId);
       }
     });
   }

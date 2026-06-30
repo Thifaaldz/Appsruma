@@ -7,16 +7,22 @@ class RoomProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   List<Room> _rooms = [];
   bool _isLoading = false;
+  int? _lastBoardingHouseId;
 
   List<Room> get rooms => _rooms;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchRooms() async {
+  Future<void> fetchRooms({int? boardingHouseId}) async {
     _isLoading = true;
+    _lastBoardingHouseId = boardingHouseId;
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.get('/rooms');
+      final params = boardingHouseId != null
+          ? {'boarding_house_id': boardingHouseId.toString()}
+          : null;
+      final response = await _apiClient.dio.get('/rooms',
+          queryParameters: params);
       if (response.statusCode == 200) {
         _rooms = (response.data as List).map((e) => Room.fromJson(e)).toList();
       }
@@ -34,7 +40,7 @@ class RoomProvider with ChangeNotifier {
     try {
       final response = await _apiClient.dio.post('/rooms', data: room.toJson());
       if (response.statusCode == 201) {
-        await fetchRooms();
+        await fetchRooms(boardingHouseId: _lastBoardingHouseId);
         return true;
       }
     } on DioException catch (e) {
@@ -52,7 +58,7 @@ class RoomProvider with ChangeNotifier {
         data: room.toJson(),
       );
       if (response.statusCode == 200) {
-        await fetchRooms();
+        await fetchRooms(boardingHouseId: _lastBoardingHouseId);
         return true;
       }
     } on DioException catch (e) {
@@ -67,7 +73,7 @@ class RoomProvider with ChangeNotifier {
     try {
       final response = await _apiClient.dio.delete('/rooms/$id');
       if (response.statusCode == 200) {
-        await fetchRooms();
+        await fetchRooms(boardingHouseId: _lastBoardingHouseId);
         return true;
       }
     } on DioException catch (e) {

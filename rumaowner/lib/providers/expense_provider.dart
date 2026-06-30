@@ -7,6 +7,7 @@ class ExpenseProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   List<Expense> _expenses = [];
   bool _isLoading = false;
+  int? _lastBoardingHouseId;
 
   List<Expense> get expenses => _expenses;
   bool get isLoading => _isLoading;
@@ -14,12 +15,16 @@ class ExpenseProvider with ChangeNotifier {
   double get totalExpenses =>
       _expenses.fold<double>(0, (sum, e) => sum + e.amount);
 
-  Future<void> fetchExpenses() async {
+  Future<void> fetchExpenses({int? boardingHouseId}) async {
     _isLoading = true;
+    _lastBoardingHouseId = boardingHouseId;
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.get('/expenses');
+      final params = boardingHouseId != null
+          ? {'boarding_house_id': boardingHouseId.toString()}
+          : null;
+      final response = await _apiClient.dio.get('/expenses', queryParameters: params);
       if (response.statusCode == 200) {
         _expenses = (response.data as List)
             .map((e) => Expense.fromJson(e))
@@ -35,14 +40,14 @@ class ExpenseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addExpense(Expense expense) async {
+  Future<bool> addExpense(Expense expense, {int? boardingHouseId}) async {
     try {
       final response = await _apiClient.dio.post(
         '/expenses',
-        data: expense.toJson(),
+        data: expense.toJson(boardingHouseId: boardingHouseId),
       );
       if (response.statusCode == 201) {
-        await fetchExpenses();
+        await fetchExpenses(boardingHouseId: boardingHouseId ?? _lastBoardingHouseId);
         return true;
       }
     } on DioException catch (e) {
@@ -57,7 +62,7 @@ class ExpenseProvider with ChangeNotifier {
     try {
       final response = await _apiClient.dio.delete('/expenses/$id');
       if (response.statusCode == 200) {
-        await fetchExpenses();
+        await fetchExpenses(boardingHouseId: _lastBoardingHouseId);
         return true;
       }
     } catch (e) {

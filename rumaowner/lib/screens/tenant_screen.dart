@@ -28,9 +28,10 @@ class _TenantScreenState extends State<TenantScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<TenantProvider>().fetchTenants();
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
       context.read<TenantProvider>().fetchTenantUsers();
-      context.read<RoomProvider>().fetchRooms();
+      context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
     });
   }

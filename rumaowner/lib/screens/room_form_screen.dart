@@ -52,8 +52,9 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
     }
     Future.microtask(() {
       if (!mounted) return;
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
-      context.read<RoomProvider>().fetchRooms();
+      context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
     });
   }
 
@@ -160,6 +161,7 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
   Widget build(BuildContext context) {
     final bhProvider = context.watch<BoardingHouseProvider>();
     final boardingHouses = bhProvider.boardingHouses;
+    final selectedBh = bhProvider.selectedBoardingHouse;
 
     if (boardingHouses.isNotEmpty) {
       final hasValidSelection =
@@ -169,7 +171,7 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
       if (!_hasSyncedSelection || !hasValidSelection) {
         final selectedId = hasValidSelection
             ? _selectedHouseId!
-            : boardingHouses.first.id;
+            : (selectedBh?.id ?? boardingHouses.first.id);
         final selectedHouse = boardingHouses.firstWhere(
           (house) => house.id == selectedId,
         );

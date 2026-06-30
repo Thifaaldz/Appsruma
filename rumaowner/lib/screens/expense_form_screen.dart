@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../models/expense.dart';
 import '../providers/expense_provider.dart';
+import '../providers/boarding_house_provider.dart';
 
 class ExpenseFormScreen extends StatefulWidget {
   const ExpenseFormScreen({super.key});
@@ -95,7 +96,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       createdAt: DateTime.now(),
     );
 
-    final success = await context.read<ExpenseProvider>().addExpense(expense);
+    final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+    final success = await context.read<ExpenseProvider>().addExpense(expense, boardingHouseId: bhId);
 
     if (!mounted) return;
     setState(() => _isSaving = false);

@@ -1,6 +1,7 @@
 class Expense {
   final int id;
   final int ownerId;
+  final int boardingHouseId;
   final String title;
   final double amount;
   final String category;
@@ -11,6 +12,7 @@ class Expense {
   Expense({
     required this.id,
     required this.ownerId,
+    this.boardingHouseId = 0,
     required this.title,
     required this.amount,
     this.category = '',
@@ -23,6 +25,7 @@ class Expense {
     return Expense(
       id: json['id'] ?? 0,
       ownerId: json['owner_id'] ?? 0,
+      boardingHouseId: json['boarding_house_id'] ?? 0,
       title: json['title'] ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       category: json['category'] ?? '',
@@ -36,8 +39,9 @@ class Expense {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({int? boardingHouseId}) {
     return {
+      'boarding_house_id': boardingHouseId ?? this.boardingHouseId,
       'title': title,
       'amount': amount,
       'category': category,

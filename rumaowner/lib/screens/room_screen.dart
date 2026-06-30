@@ -25,7 +25,8 @@ class _RoomScreenState extends State<RoomScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<RoomProvider>().fetchRooms();
+      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
     });
   }
@@ -113,8 +114,11 @@ class _RoomScreenState extends State<RoomScreen> {
   Widget build(BuildContext context) {
     final bhProvider = context.watch<BoardingHouseProvider>();
     final roomProvider = context.watch<RoomProvider>();
+    final selectedBh = bhProvider.selectedBoardingHouse;
 
-    final boardingHouses = bhProvider.boardingHouses;
+    final boardingHouses = selectedBh != null
+        ? bhProvider.boardingHouses.where((h) => h.id == selectedBh.id).toList()
+        : bhProvider.boardingHouses;
 
     var allRooms = List<Room>.from(roomProvider.rooms);
     if (widget.filterVacant) {

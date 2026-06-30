@@ -11,12 +11,16 @@ class PaymentProvider with ChangeNotifier {
   List<Payment> get payments => _payments;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchPayments() async {
+  Future<void> fetchPayments({int? boardingHouseId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await _apiClient.dio.get('/payments');
+      final params = boardingHouseId != null
+          ? {'boarding_house_id': boardingHouseId.toString()}
+          : null;
+      final response = await _apiClient.dio.get('/payments',
+          queryParameters: params);
       if (response.statusCode == 200) {
         final list = response.data as List;
         _payments = list.map((e) => Payment.fromJson(e)).toList();

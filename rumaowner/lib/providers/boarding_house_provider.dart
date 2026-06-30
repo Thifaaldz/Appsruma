@@ -6,12 +6,26 @@ import '../models/boarding_house.dart';
 class BoardingHouseProvider with ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   List<BoardingHouse> _boardingHouses = [];
+  BoardingHouse? _selectedBoardingHouse;
   bool _isLoading = false;
   String? _lastError;
 
   List<BoardingHouse> get boardingHouses => _boardingHouses;
+  BoardingHouse? get selectedBoardingHouse => _selectedBoardingHouse;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
+
+  /// Pilih kos aktif — semua provider lain akan filter berdasarkan ini
+  void selectBoardingHouse(BoardingHouse bh) {
+    _selectedBoardingHouse = bh;
+    notifyListeners();
+  }
+
+  /// Reset pilihan kos (saat logout atau kembali ke halaman pilih kos)
+  void clearSelection() {
+    _selectedBoardingHouse = null;
+    notifyListeners();
+  }
 
   Future<void> fetchBoardingHouses() async {
     _isLoading = true;

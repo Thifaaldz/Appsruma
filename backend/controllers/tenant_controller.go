@@ -40,10 +40,34 @@ func (ctrl *TenantController) GetAllTenants(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	if role == "owner" {
-		roomIDs, err := utils.GetOwnerRoomIDs(userID.(uint))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch room details"})
-			return
+		// Optional filter: ?boarding_house_id=X
+		bhIDStr := c.Query("boarding_house_id")
+
+		var roomIDs []uint
+		if bhIDStr != "" {
+			// Verify ownership
+			bhID, err := strconv.Atoi(bhIDStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid boarding_house_id"})
+				return
+			}
+			var count int64
+			config.DB.Model(&models.BoardingHouse{}).Where("id = ? AND owner_id = ?", uint(bhID), userID.(uint)).Count(&count)
+			if count == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+			if err := config.DB.Model(&models.Room{}).Where("boarding_house_id = ?", uint(bhID)).Pluck("id", &roomIDs).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
+				return
+			}
+		} else {
+			var err error
+			roomIDs, err = utils.GetOwnerRoomIDs(userID.(uint))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch room details"})
+				return
+			}
 		}
 		if len(roomIDs) == 0 {
 			c.JSON(http.StatusOK, []models.Tenant{})

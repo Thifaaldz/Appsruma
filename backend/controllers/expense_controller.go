@@ -22,11 +22,12 @@ func (ctrl *ExpenseController) CreateExpense(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	var input struct {
-		Title    string  `json:"title" binding:"required"`
-		Amount   float64 `json:"amount" binding:"required"`
-		Category string  `json:"category"`
-		Date     string  `json:"date"`
-		Note     string  `json:"note"`
+		BoardingHouseID uint    `json:"boarding_house_id"`
+		Title           string  `json:"title" binding:"required"`
+		Amount          float64 `json:"amount" binding:"required"`
+		Category        string  `json:"category"`
+		Date            string  `json:"date"`
+		Note            string  `json:"note"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -43,12 +44,13 @@ func (ctrl *ExpenseController) CreateExpense(c *gin.Context) {
 	}
 
 	expense := models.Expense{
-		OwnerID:  userID.(uint),
-		Title:    input.Title,
-		Amount:   input.Amount,
-		Category: input.Category,
-		Date:     date,
-		Note:     input.Note,
+		OwnerID:         userID.(uint),
+		BoardingHouseID: input.BoardingHouseID,
+		Title:           input.Title,
+		Amount:          input.Amount,
+		Category:        input.Category,
+		Date:            date,
+		Note:            input.Note,
 	}
 
 	if err := ctrl.expenseRepo.Create(&expense); err != nil {
@@ -62,7 +64,22 @@ func (ctrl *ExpenseController) CreateExpense(c *gin.Context) {
 func (ctrl *ExpenseController) GetMyExpenses(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
-	expenses, err := ctrl.expenseRepo.FindByOwnerID(userID.(uint))
+	// Optional filter: ?boarding_house_id=X
+	bhIDStr := c.Query("boarding_house_id")
+
+	var expenses []models.Expense
+	var err error
+	if bhIDStr != "" {
+		bhID, convErr := strconv.Atoi(bhIDStr)
+		if convErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid boarding_house_id"})
+			return
+		}
+		expenses, err = ctrl.expenseRepo.FindByOwnerAndBoardingHouse(userID.(uint), uint(bhID))
+	} else {
+		expenses, err = ctrl.expenseRepo.FindByOwnerID(userID.(uint))
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pengeluaran"})
 		return
