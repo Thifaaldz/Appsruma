@@ -11,9 +11,9 @@ import 'providers/payment_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/announcement_provider.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/boarding_house_selection_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'core/theme.dart';
 
 void main() async {
@@ -89,8 +89,8 @@ class _StartupGateState extends State<StartupGate> {
         targetKey = 'select_bh';
       }
     } else {
-      targetScreen = const LoginScreen();
-      targetKey = 'login';
+      targetScreen = const WelcomeScreen();
+      targetKey = 'welcome';
     }
 
     final child = showTarget ? targetScreen : const SplashScreen();
@@ -118,3 +118,4 @@ class _StartupGateState extends State<StartupGate> {
     );
   }
 }
+

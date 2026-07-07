@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RUMA - Onboarding Dashboard Properti</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface-container": "#eeeee7",
+                    "olive-drab": "#4B5320",
+                    "tertiary-fixed": "#f9d8ff",
+                    "surface": "#fafaf3",
+                    "surface-container-highest": "#e3e3dc",
+                    "on-primary-container": "#bdc787",
+                    "primary-fixed-dim": "#c3cc8c",
+                    "secondary-fixed": "#dfe7bd",
+                    "on-tertiary-fixed-variant": "#593c62",
+                    "sage-accent": "#A4AC86",
+                    "primary-fixed": "#dfe8a6",
+                    "outline-variant": "#c8c7b8",
+                    "on-surface-variant": "#47483c",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#dfe7bd",
+                    "primary-container": "#4b5320",
+                    "background": "#fafaf3",
+                    "surface-tint": "#5a632e",
+                    "on-primary-fixed-variant": "#434b18",
+                    "charcoal-text": "#1A1C18",
+                    "on-secondary-container": "#606847",
+                    "on-tertiary": "#ffffff",
+                    "inverse-surface": "#2f312d",
+                    "tertiary-fixed-dim": "#e0bae8",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#434a2b",
+                    "surface-bright": "#fafaf3",
+                    "on-tertiary-container": "#dab4e2",
+                    "inverse-primary": "#c3cc8c",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#c3cba3",
+                    "primary": "#343c0a",
+                    "inverse-on-surface": "#f1f1ea",
+                    "surface-container-high": "#e8e9e2",
+                    "surface-container-low": "#f4f4ed",
+                    "tertiary-container": "#62446b",
+                    "surface-dim": "#dadad4",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#e3e3dc",
+                    "cream-bg": "#FDFBF7",
+                    "on-tertiary-fixed": "#2b1034",
+                    "on-primary-fixed": "#191e00",
+                    "outline": "#77786b",
+                    "secondary": "#5a6241",
+                    "tertiary": "#4a2d53",
+                    "on-surface": "#1a1c18",
+                    "on-secondary-fixed": "#181e05",
+                    "on-background": "#1a1c18",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "base": "4px",
+                    "lg": "24px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "40px",
+                    "xl": "32px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "label-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #fafaf3; /* surface */
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+        }
+
+        .donut-ring {
+            transition: stroke-dashoffset 1s ease-out;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating-card {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-on-surface">
+<!-- Content Canvas (Onboarding focuses on Canvas, Shell is suppressed) -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile relative overflow-hidden">
+<!-- Background Ambient Element (Atmospheric Effect) -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-sage-accent/10 rounded-full blur-3xl"></div>
+<div class="absolute -bottom-24 -left-24 w-80 h-80 bg-olive-drab/5 rounded-full blur-3xl"></div>
+<!-- Top Header Anchor (Non-interactive) -->
+<div class="absolute top-12 text-center w-full">
+<span class="font-headline-md text-headline-md font-bold tracking-widest text-olive-drab">RUMA</span>
+</div>
+<!-- Visual Representation Section -->
+<div class="w-full max-w-sm flex flex-col items-center justify-center mb-12 fade-in">
+<!-- Simplified Occupancy Visual -->
+<div class="relative flex items-center justify-center py-8">
+<!-- Donut Chart -->
+<div class="chart-container flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<!-- Background Circle -->
+<circle class="text-surface-container-highest" cx="120" cy="120" fill="transparent" r="100" stroke="currentColor" stroke-width="20"></circle>
+<!-- Occupied Segment -->
+<circle class="text-olive-drab donut-ring" cx="120" cy="120" fill="transparent" r="100" stroke="currentColor" stroke-dasharray="628.3" stroke-dashoffset="157" stroke-width="20"></circle>
+</svg>
+<!-- Center Info -->
+<div class="absolute flex flex-col items-center text-center">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-olive-drab">75%</span>
+<span class="font-label-md text-label-md text-on-surface-variant">TERISI</span>
+</div>
+</div>
+<!-- Floating Data Chips -->
+<div class="absolute top-0 right-[-10px] bg-white p-3 rounded-xl shadow-lg shadow-olive-drab/10 floating-card border border-surface-container flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-olive-drab"></div>
+<span class="font-label-md text-label-md text-on-surface">Kamar Aktif: 24</span>
+</div>
+<div class="absolute bottom-8 left-[-20px] bg-white p-3 rounded-xl shadow-lg shadow-olive-drab/10 floating-card border border-surface-container flex items-center gap-3" style="animation-delay: 1.5s;">
+<div class="w-2 h-2 rounded-full bg-sage-accent"></div>
+<span class="font-label-md text-label-md text-on-surface">Menunggu: 8</span>
+</div>
+</div>
+</div>
+<!-- Textual Explanation -->
+<div class="w-full max-w-md text-center space-y-4 fade-in" style="animation-delay: 0.2s;">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-charcoal-text">
+                Pantau Okupansi Real-time
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant px-4">
+                Pantau tingkat hunian kamar Anda secara visual dan real-time langsung dari dashboard utama.
+            </p>
+</div>
+<!-- Progress Dots Indicator -->
+<div class="flex gap-2 mt-12 fade-in" style="animation-delay: 0.4s;">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-6 h-2 rounded-full bg-olive-drab"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+</main>
+<!-- Fixed Action Buttons at Bottom -->
+<footer class="w-full px-margin-mobile pb-12 pt-6 flex flex-col gap-4 max-w-lg mx-auto fade-in" style="animation-delay: 0.6s;">
+<button class="w-full h-14 bg-olive-drab text-white rounded-xl font-headline-md text-headline-md active:scale-95 transition-transform flex items-center justify-center gap-2">
+            Lanjut
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<button class="w-full h-14 bg-transparent text-on-surface-variant rounded-xl font-body-lg text-body-lg active:scale-95 transition-transform">
+            Kembali
+        </button>
+</footer>
+<!-- Micro-interactions Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simulate button clicks for visual feedback
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    // Visual ripple or state change could go here
+                    console.log('Button clicked: ' + this.innerText.trim());
+                });
+            });
+
+            // Smoothly animate the donut chart on load
+            const ring = document.querySelector('.donut-ring');
+            if (ring) {
+                // Total circumference is ~628.3 (2 * PI * 100)
+                // 75% occupied means 25% offset (0.25 * 628.3 = 157.075)
+                setTimeout(() => {
+                    ring.style.strokeDashoffset = "157.075";
+                }, 300);
+            }
+        });
+    </script>
+</body></html>

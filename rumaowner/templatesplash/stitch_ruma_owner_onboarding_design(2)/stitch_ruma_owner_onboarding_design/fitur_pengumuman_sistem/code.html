@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RUMA Onboarding - Penyebaran Pengumuman</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface-container": "#eeeee7",
+                    "olive-drab": "#4B5320",
+                    "tertiary-fixed": "#f9d8ff",
+                    "surface": "#fafaf3",
+                    "surface-container-highest": "#e3e3dc",
+                    "on-primary-container": "#bdc787",
+                    "primary-fixed-dim": "#c3cc8c",
+                    "secondary-fixed": "#dfe7bd",
+                    "on-tertiary-fixed-variant": "#593c62",
+                    "sage-accent": "#A4AC86",
+                    "primary-fixed": "#dfe8a6",
+                    "outline-variant": "#c8c7b8",
+                    "on-surface-variant": "#47483c",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#dfe7bd",
+                    "primary-container": "#4b5320",
+                    "background": "#fafaf3",
+                    "surface-tint": "#5a632e",
+                    "on-primary-fixed-variant": "#434b18",
+                    "charcoal-text": "#1A1C18",
+                    "on-secondary-container": "#606847",
+                    "on-tertiary": "#ffffff",
+                    "inverse-surface": "#2f312d",
+                    "tertiary-fixed-dim": "#e0bae8",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#434a2b",
+                    "surface-bright": "#fafaf3",
+                    "on-tertiary-container": "#dab4e2",
+                    "inverse-primary": "#c3cc8c",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#c3cba3",
+                    "primary": "#343c0a",
+                    "inverse-on-surface": "#f1f1ea",
+                    "surface-container-high": "#e8e9e2",
+                    "surface-container-low": "#f4f4ed",
+                    "tertiary-container": "#62446b",
+                    "surface-dim": "#dadad4",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#e3e3dc",
+                    "cream-bg": "#FDFBF7",
+                    "on-tertiary-fixed": "#2b1034",
+                    "on-primary-fixed": "#191e00",
+                    "outline": "#77786b",
+                    "secondary": "#5a6241",
+                    "tertiary": "#4a2d53",
+                    "on-surface": "#1a1c18",
+                    "on-secondary-fixed": "#181e05",
+                    "on-background": "#1a1c18",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "base": "4px",
+                    "lg": "24px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "40px",
+                    "xl": "32px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "label-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mesh {
+            background: radial-gradient(circle at 10% 20%, rgba(164, 172, 134, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 90% 80%, rgba(75, 83, 32, 0.05) 0%, transparent 50%);
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface overflow-hidden">
+<!-- Top Bar Component -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-surface shadow-sm shadow-olive-drab/5">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md font-bold text-olive-drab">RUMA</span>
+</div>
+<div class="p-2 hover:bg-surface-container-low transition-colors rounded-full active:scale-95 cursor-pointer">
+<span class="material-symbols-outlined text-outline">help_outline</span>
+</div>
+</header>
+<main class="relative min-h-screen flex flex-col items-center justify-center bg-mesh px-margin-mobile pt-16 pb-32">
+<!-- Hero Visual Section -->
+<div class="relative w-full max-w-sm flex items-center justify-center mb-12">
+<!-- Background Decorative Elements -->
+<div class="absolute w-64 h-64 bg-sage-accent/10 rounded-full blur-3xl"></div>
+<!-- Announcement Mockup -->
+<div class="relative z-10 w-full animate-float">
+<div class="bg-surface-container-lowest p-6 rounded-[24px] shadow-[0_20px_50px_rgba(75,83,32,0.08)] border border-outline-variant/30">
+<!-- Icon & Label Row -->
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container shadow-inner">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">info</span>
+</div>
+<div class="flex-1">
+<div class="h-3 w-24 bg-surface-container rounded-full mb-2"></div>
+<div class="h-2 w-16 bg-surface-container-highest rounded-full"></div>
+</div>
+</div>
+<!-- Bubble Pattern -->
+<div class="space-y-3">
+<div class="p-4 bg-surface-container-low rounded-2xl rounded-tl-none pop-in" style="animation-delay: 0.2s;">
+<p class="text-body-md font-medium text-olive-drab">Pengumuman: Perbaikan pipa air di lantai 2 sore ini.</p>
+</div>
+<div class="flex justify-end">
+<div class="h-2 w-12 bg-outline-variant/50 rounded-full"></div>
+</div>
+</div>
+<!-- Action Sim -->
+<div class="mt-6 pt-6 border-t border-surface-container flex justify-between items-center">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-300"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-400"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-container flex items-center justify-center text-[10px] text-white">+12</div>
+</div>
+<div class="px-4 py-2 bg-sage-accent/20 rounded-full text-olive-drab font-label-md text-label-md">
+                            Terkirim
+                        </div>
+</div>
+</div>
+</div>
+<!-- Floating Decoration -->
+<div class="absolute -top-4 -right-4 w-12 h-12 bg-tertiary-fixed-dim rounded-full flex items-center justify-center shadow-lg pop-in" style="animation-delay: 0.5s;">
+<span class="material-symbols-outlined text-on-tertiary-fixed text-xl">campaign</span>
+</div>
+</div>
+<!-- Text Content -->
+<div class="text-center max-w-xs mb-12">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-charcoal-text mb-4">
+                Informasi Cepat ke Penghuni
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                Sebarkan berita atau pengumuman penting kepada seluruh penghuni kos hanya dengan satu klik.
+            </p>
+</div>
+<!-- Progress Dots -->
+<div class="flex gap-2 mb-12">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-8 h-2 rounded-full bg-olive-drab transition-all duration-300"></div>
+</div>
+</main>
+<!-- Fixed Bottom Action Area -->
+<footer class="fixed bottom-0 left-0 w-full p-margin-mobile bg-gradient-to-t from-surface via-surface to-transparent">
+<div class="flex flex-col gap-4 max-w-md mx-auto">
+<button class="w-full h-[56px] bg-primary-container text-on-primary-container font-headline-md rounded-2xl shadow-xl shadow-olive-drab/20 flex items-center justify-center gap-2 active:scale-95 transition-transform" onclick="handleFinish()">
+<span>Selesai &amp; Masuk</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<button class="w-full py-2 text-on-surface-variant font-label-md text-label-md uppercase tracking-wider hover:text-olive-drab transition-colors">
+                Kembali
+            </button>
+</div>
+</footer>
+<script>
+        function handleFinish() {
+            // Ripple effect logic or navigation
+            const btn = document.querySelector('button');
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span>';
+            setTimeout(() => {
+                window.location.reload(); // Simulate entry
+            }, 800);
+        }
+
+        // Simple entrance animation for elements
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = document.querySelectorAll('.pop-in');
+            elements.forEach((el, index) => {
+                el.style.animationDelay = `${(index + 1) * 0.15}s`;
+            });
+        });
+    </script>
+</body></html>

@@ -87,13 +87,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: Image.asset(
-                  'assets/RUMA LOGO 1.png',
-                  height: 46,
-                  color: AppTheme.lightBeige,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppTheme.lightBeige),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Image.asset(
+                    'assets/RUMA LOGO 1.png',
+                    height: 46,
+                    color: AppTheme.lightBeige,
+                  ),
+                ],
               ),
               const SizedBox(height: 36),
               _buildField('Nama Lengkap', _nameController),
@@ -134,6 +140,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           )
                         : const Text('Daftar'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Sudah Punya Akun? Masuk',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.lightBeige.withValues(alpha: 0.9),
+                          fontSize: 14,
+                        ),
                   ),
                 ),
               ),

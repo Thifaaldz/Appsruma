@@ -26,8 +26,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
   int _selectedYear = DateTime.now().year;
 
   final List<String> _months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   final List<int> _years = [2024, 2025, 2026, 2027];
@@ -37,7 +47,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
       context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
       context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
     });
@@ -52,7 +65,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
     return formatter.format(amount);
   }
 
-  Future<void> _generatePdfReport(List<Payment> payments, List<Expense> expenses, double totalIncome, double totalExpense, double netProfit) async {
+  Future<void> _generatePdfReport(
+    List<Payment> payments,
+    List<Expense> expenses,
+    double totalIncome,
+    double totalExpense,
+    double netProfit,
+  ) async {
     final pdf = pw.Document();
 
     final periodLabel = _mode == 'Mingguan'
@@ -70,17 +89,32 @@ class _FinanceScreenState extends State<FinanceScreen> {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('LAPORAN KEUANGAN RUMA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                  pw.Text(DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()), style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text(
+                    'LAPORAN KEUANGAN RUMA',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
+                    style: const pw.TextStyle(fontSize: 10),
+                  ),
                 ],
               ),
             ),
             pw.SizedBox(height: 10),
-            pw.Text('Periode: $periodLabel', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Periode: $periodLabel',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 15),
 
             // Summary Table
-            pw.Text('Ringkasan Keuangan', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Ringkasan Keuangan',
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 5),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
@@ -90,30 +124,60 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text('Kategori', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text(
+                        'Kategori',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text('Total Nominal', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text(
+                        'Total Nominal',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
                 pw.TableRow(
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Total Pendapatan')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatCurrency(totalIncome))),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text('Total Pendapatan'),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(_formatCurrency(totalIncome)),
+                    ),
                   ],
                 ),
                 pw.TableRow(
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Total Pengeluaran')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatCurrency(totalExpense))),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text('Total Pengeluaran'),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(_formatCurrency(totalExpense)),
+                    ),
                   ],
                 ),
                 pw.TableRow(
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Laba Bersih', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatCurrency(netProfit), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Laba Bersih',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        _formatCurrency(netProfit),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -121,7 +185,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
             pw.SizedBox(height: 20),
 
             // Details Table
-            pw.Text('Detail Transaksi', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Detail Transaksi',
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 5),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
@@ -129,28 +196,84 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tanggal', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tipe', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Deskripsi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Nominal', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Tanggal',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Tipe',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Deskripsi',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Nominal',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
-                ...payments.map((p) => pw.TableRow(
-                  children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(DateFormat('dd/MM/yyyy').format(p.paymentDate))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pendapatan')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Bayar Kos - ${p.tenant?.userName ?? "Tenant"} (${p.billingPeriod})')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatCurrency(p.amount))),
-                  ],
-                )),
-                ...expenses.map((e) => pw.TableRow(
-                  children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(DateFormat('dd/MM/yyyy').format(e.date))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pengeluaran')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${e.title} [${e.category}]')),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatCurrency(e.amount))),
-                  ],
-                )),
+                ...payments.map(
+                  (p) => pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          DateFormat('dd/MM/yyyy').format(p.paymentDate),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Pendapatan'),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          'Bayar Kos - ${p.tenant?.userName ?? "Tenant"} (${p.billingPeriod})',
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(_formatCurrency(p.amount)),
+                      ),
+                    ],
+                  ),
+                ),
+                ...expenses.map(
+                  (e) => pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(DateFormat('dd/MM/yyyy').format(e.date)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('Pengeluaran'),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text('${e.title} [${e.category}]'),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(_formatCurrency(e.amount)),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ];
@@ -170,7 +293,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
     final expenseProvider = context.watch<ExpenseProvider>();
 
     // 1. Get database records
-    final allPayments = paymentProvider.payments.where((p) => p.status == 'paid').toList();
+    final allPayments = paymentProvider.payments
+        .where((p) => p.status == 'paid')
+        .toList();
     final allExpenses = expenseProvider.expenses;
 
     // 2. Filter based on selected month & year
@@ -179,19 +304,38 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
     if (_mode == 'Mingguan') {
       // Filter to current selected month and year
-      filteredPayments = allPayments.where((p) =>
-          p.paymentDate.month == _selectedMonth && p.paymentDate.year == _selectedYear).toList();
-      filteredExpenses = allExpenses.where((e) =>
-          e.date.month == _selectedMonth && e.date.year == _selectedYear).toList();
+      filteredPayments = allPayments
+          .where(
+            (p) =>
+                p.paymentDate.month == _selectedMonth &&
+                p.paymentDate.year == _selectedYear,
+          )
+          .toList();
+      filteredExpenses = allExpenses
+          .where(
+            (e) =>
+                e.date.month == _selectedMonth && e.date.year == _selectedYear,
+          )
+          .toList();
     } else {
       // Filter to selected year
-      filteredPayments = allPayments.where((p) => p.paymentDate.year == _selectedYear).toList();
-      filteredExpenses = allExpenses.where((e) => e.date.year == _selectedYear).toList();
+      filteredPayments = allPayments
+          .where((p) => p.paymentDate.year == _selectedYear)
+          .toList();
+      filteredExpenses = allExpenses
+          .where((e) => e.date.year == _selectedYear)
+          .toList();
     }
 
     // 3. Totals
-    final totalIncome = filteredPayments.fold<double>(0, (sum, p) => sum + p.amount);
-    final totalExpense = filteredExpenses.fold<double>(0, (sum, e) => sum + e.amount);
+    final totalIncome = filteredPayments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
+    final totalExpense = filteredExpenses.fold<double>(
+      0,
+      (sum, e) => sum + e.amount,
+    );
     final netProfit = totalIncome - totalExpense;
 
     // 4. Group data for chart & list
@@ -202,16 +346,33 @@ class _FinanceScreenState extends State<FinanceScreen> {
         final startDay = (week - 1) * 7 + 1;
         final endDay = week == 4 ? 31 : week * 7;
 
-        final weekPayments = filteredPayments.where((p) =>
-            p.paymentDate.day >= startDay && p.paymentDate.day <= endDay).toList();
-        final weekExpenses = filteredExpenses.where((e) =>
-            e.date.day >= startDay && e.date.day <= endDay).toList();
+        final weekPayments = filteredPayments
+            .where(
+              (p) =>
+                  p.paymentDate.day >= startDay && p.paymentDate.day <= endDay,
+            )
+            .toList();
+        final weekExpenses = filteredExpenses
+            .where((e) => e.date.day >= startDay && e.date.day <= endDay)
+            .toList();
 
-        final weekIncome = weekPayments.fold<double>(0, (sum, p) => sum + p.amount);
-        final weekExpense = weekExpenses.fold<double>(0, (sum, e) => sum + e.amount);
+        final weekIncome = weekPayments.fold<double>(
+          0,
+          (sum, p) => sum + p.amount,
+        );
+        final weekExpense = weekExpenses.fold<double>(
+          0,
+          (sum, e) => sum + e.amount,
+        );
 
         rekapData.add({
-          'label': week == 1 ? 'Minggu Pertama' : week == 2 ? 'Minggu Kedua' : week == 3 ? 'Minggu Ketiga' : 'Minggu Keempat',
+          'label': week == 1
+              ? 'Minggu Pertama'
+              : week == 2
+              ? 'Minggu Kedua'
+              : week == 3
+              ? 'Minggu Ketiga'
+              : 'Minggu Keempat',
           'transaksi': weekPayments.length + weekExpenses.length,
           'pendapatan': weekIncome,
           'pengeluaran': weekExpense,
@@ -221,11 +382,21 @@ class _FinanceScreenState extends State<FinanceScreen> {
     } else {
       // Group by 12 months
       for (int m = 1; m <= 12; m++) {
-        final monthPayments = filteredPayments.where((p) => p.paymentDate.month == m).toList();
-        final monthExpenses = filteredExpenses.where((e) => e.date.month == m).toList();
+        final monthPayments = filteredPayments
+            .where((p) => p.paymentDate.month == m)
+            .toList();
+        final monthExpenses = filteredExpenses
+            .where((e) => e.date.month == m)
+            .toList();
 
-        final monthIncome = monthPayments.fold<double>(0, (sum, p) => sum + p.amount);
-        final monthExpense = monthExpenses.fold<double>(0, (sum, e) => sum + e.amount);
+        final monthIncome = monthPayments.fold<double>(
+          0,
+          (sum, p) => sum + p.amount,
+        );
+        final monthExpense = monthExpenses.fold<double>(
+          0,
+          (sum, e) => sum + e.amount,
+        );
 
         rekapData.add({
           'label': _months[m - 1],
@@ -243,9 +414,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
         bottom: false,
         child: RefreshIndicator(
           onRefresh: () async {
-            final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
-            await context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
-            await context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
+            final boardingHouseProvider = context.read<BoardingHouseProvider>();
+            final paymentProvider = context.read<PaymentProvider>();
+            final expenseProvider = context.read<ExpenseProvider>();
+            final bhId = boardingHouseProvider.selectedBoardingHouse?.id;
+
+            await paymentProvider.fetchPayments(boardingHouseId: bhId);
+            await expenseProvider.fetchExpenses(boardingHouseId: bhId);
           },
           color: AppTheme.darkOlive,
           child: SingleChildScrollView(
@@ -260,13 +435,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppTheme.darkOlive),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        size: 20,
+                        color: AppTheme.darkOlive,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Expanded(
                       child: Text(
                         'Laporan Keuangan',
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
                             ),
@@ -277,40 +457,65 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 const SizedBox(height: 14),
 
                 // Top actions: Unduh & Cetak
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => _generatePdfReport(filteredPayments, filteredExpenses, totalIncome, totalExpense, netProfit),
+                      onPressed: () => _generatePdfReport(
+                        filteredPayments,
+                        filteredExpenses,
+                        totalIncome,
+                        totalExpense,
+                        netProfit,
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       icon: const Icon(Icons.download_outlined, size: 16),
                       label: const Text(
                         'Unduh Laporan',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     OutlinedButton.icon(
-                      onPressed: () => _generatePdfReport(filteredPayments, filteredExpenses, totalIncome, totalExpense, netProfit),
+                      onPressed: () => _generatePdfReport(
+                        filteredPayments,
+                        filteredExpenses,
+                        totalIncome,
+                        totalExpense,
+                        netProfit,
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.black,
                         side: const BorderSide(color: Colors.black, width: 1.2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       icon: const Icon(Icons.print_outlined, size: 16),
                       label: const Text(
                         'Cetak',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -324,7 +529,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     color: const Color(0xFFF1E6D2),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       // Mingguan vs Bulanan Toggles
                       Container(
@@ -340,11 +548,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
 
                       // Pilih Bulan (if Mingguan)
                       if (_mode == 'Mingguan') ...[
-                        Expanded(
+                        SizedBox(
+                          width: 150,
                           child: Container(
                             height: 38,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -360,22 +568,27 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                     value: index + 1,
                                     child: Text(
                                       _months[index],
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   );
                                 }),
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _selectedMonth = val);
+                                  if (val != null) {
+                                    setState(() => _selectedMonth = val);
+                                  }
                                 },
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                       ],
 
                       // Pilih Tahun
-                      Expanded(
+                      SizedBox(
+                        width: 110,
                         child: Container(
                           height: 38,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -391,12 +604,17 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                   value: y,
                                   child: Text(
                                     y.toString(),
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 );
                               }).toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _selectedYear = val);
+                                if (val != null) {
+                                  setState(() => _selectedYear = val);
+                                }
                               },
                             ),
                           ),
@@ -408,18 +626,36 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 const SizedBox(height: 16),
 
                 // Metrics Row
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      child: _smallMetricCard('Total Pendapatan', totalIncome, const Color(0xFFD5F0D8), const Color(0xFF295433)),
+                    SizedBox(
+                      width: 160,
+                      child: _smallMetricCard(
+                        'Total Pendapatan',
+                        totalIncome,
+                        const Color(0xFFD5F0D8),
+                        const Color(0xFF295433),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _smallMetricCard('Total Pengeluaran', totalExpense, const Color(0xFFF9DCDC), const Color(0xFFB23A48)),
+                    SizedBox(
+                      width: 160,
+                      child: _smallMetricCard(
+                        'Total Pengeluaran',
+                        totalExpense,
+                        const Color(0xFFF9DCDC),
+                        const Color(0xFFB23A48),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _smallMetricCard('Laba Bersih', netProfit, const Color(0xFFE8F4FD), const Color(0xFF2D4F7E)),
+                    SizedBox(
+                      width: 160,
+                      child: _smallMetricCard(
+                        'Laba Bersih',
+                        netProfit,
+                        const Color(0xFFE8F4FD),
+                        const Color(0xFF2D4F7E),
+                      ),
                     ),
                   ],
                 ),
@@ -434,7 +670,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     children: [
                       Text(
                         'Grafik Pendapatan vs. Pengeluaran',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
@@ -442,58 +679,87 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       const SizedBox(height: 20),
                       SizedBox(
                         height: 160,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: rekapData.map((data) {
-                            final inc = data['pendapatan'] as double;
-                            final exp = data['pengeluaran'] as double;
-                            final maxVal = rekapData.map((d) {
-                              final i = d['pendapatan'] as double;
-                              final e = d['pengeluaran'] as double;
-                              return i > e ? i : e;
-                            }).reduce((a, b) => a > b ? a : b);
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: rekapData.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final data = entry.value;
+                              final inc = data['pendapatan'] as double;
+                              final exp = data['pengeluaran'] as double;
+                              final maxVal = rekapData
+                                  .map((d) {
+                                    final i = d['pendapatan'] as double;
+                                    final e = d['pengeluaran'] as double;
+                                    return i > e ? i : e;
+                                  })
+                                  .reduce((a, b) => a > b ? a : b);
 
-                            final incHeight = maxVal > 0 ? (inc / maxVal) * 110 : 0.0;
-                            final expHeight = maxVal > 0 ? (exp / maxVal) * 110 : 0.0;
+                              final incHeight = maxVal > 0
+                                  ? (inc / maxVal) * 110
+                                  : 0.0;
+                              final expHeight = maxVal > 0
+                                  ? (exp / maxVal) * 110
+                                  : 0.0;
 
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                              return SizedBox(
+                                width: 56,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    // Income Bar (Green)
-                                    Container(
-                                      width: 14,
-                                      height: incHeight.clamp(2.0, 110.0),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF295433),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          width: 14,
+                                          height: incHeight.clamp(2.0, 110.0),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF295433),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          width: 14,
+                                          height: expHeight.clamp(2.0, 110.0),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFB23A48),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 4),
-                                    // Expense Bar (Red)
-                                    Container(
-                                      width: 14,
-                                      height: expHeight.clamp(2.0, 110.0),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFB23A48),
-                                        borderRadius: BorderRadius.circular(4),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _mode == 'Mingguan'
+                                          ? 'W${index + 1}'
+                                          : DateFormat('MMM').format(
+                                              DateTime(
+                                                _selectedYear,
+                                                index + 1,
+                                              ),
+                                            ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _mode == 'Mingguan'
-                                      ? 'W${rekapData.indexOf(data) + 1}'
-                                      : DateFormat('MMM').format(DateTime(_selectedYear, rekapData.indexOf(data) + 1)),
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
                     ],
@@ -505,9 +771,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 Text(
                   _mode == 'Mingguan' ? 'Rekap Mingguan' : 'Rekap Bulanan',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -531,12 +797,19 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         children: [
                           Text(
                             data['label'],
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${data['transaksi']} Transaksi',
-                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -545,11 +818,24 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                           child: Column(
                             children: [
-                              _rekapRow('Pendapatan', data['pendapatan'] as double, const Color(0xFF295433)),
+                              _rekapRow(
+                                'Pendapatan',
+                                data['pendapatan'] as double,
+                                const Color(0xFF295433),
+                              ),
                               const Divider(height: 12),
-                              _rekapRow('Pengeluaran', data['pengeluaran'] as double, const Color(0xFFB23A48)),
+                              _rekapRow(
+                                'Pengeluaran',
+                                data['pengeluaran'] as double,
+                                const Color(0xFFB23A48),
+                              ),
                               const Divider(height: 12),
-                              _rekapRow('Laba Bersih', data['laba'] as double, const Color(0xFF2D4F7E), isBold: true),
+                              _rekapRow(
+                                'Laba Bersih',
+                                data['laba'] as double,
+                                const Color(0xFF2D4F7E),
+                                isBold: true,
+                              ),
                             ],
                           ),
                         ),
@@ -587,7 +873,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _smallMetricCard(String title, double value, Color bgColor, Color textColor) {
+  Widget _smallMetricCard(
+    String title,
+    double value,
+    Color bgColor,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -600,7 +891,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -618,20 +913,31 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _rekapRow(String label, double val, Color color, {bool isBold = false}) {
+  Widget _rekapRow(
+    String label,
+    double val,
+    Color color, {
+    bool isBold = false,
+  }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: Colors.black87,
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: Colors.black87,
+            ),
           ),
         ),
+        const SizedBox(width: 12),
         Text(
           _formatCurrency(val),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,

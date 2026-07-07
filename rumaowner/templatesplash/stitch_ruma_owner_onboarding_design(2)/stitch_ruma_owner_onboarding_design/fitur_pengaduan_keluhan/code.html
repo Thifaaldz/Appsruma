@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RUMA - Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafaf3;
+        }
+        .bento-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-container": "#eeeee7",
+                      "olive-drab": "#4B5320",
+                      "tertiary-fixed": "#f9d8ff",
+                      "surface": "#fafaf3",
+                      "surface-container-highest": "#e3e3dc",
+                      "on-primary-container": "#bdc787",
+                      "primary-fixed-dim": "#c3cc8c",
+                      "secondary-fixed": "#dfe7bd",
+                      "on-tertiary-fixed-variant": "#593c62",
+                      "sage-accent": "#A4AC86",
+                      "primary-fixed": "#dfe8a6",
+                      "outline-variant": "#c8c7b8",
+                      "on-surface-variant": "#47483c",
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#dfe7bd",
+                      "primary-container": "#4b5320",
+                      "background": "#fafaf3",
+                      "surface-tint": "#5a632e",
+                      "on-primary-fixed-variant": "#434b18",
+                      "charcoal-text": "#1A1C18",
+                      "on-secondary-container": "#606847",
+                      "on-tertiary": "#ffffff",
+                      "inverse-surface": "#2f312d",
+                      "tertiary-fixed-dim": "#e0bae8",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed-variant": "#434a2b",
+                      "surface-bright": "#fafaf3",
+                      "on-tertiary-container": "#dab4e2",
+                      "inverse-primary": "#c3cc8c",
+                      "error": "#ba1a1a",
+                      "secondary-fixed-dim": "#c3cba3",
+                      "primary": "#343c0a",
+                      "inverse-on-surface": "#f1f1ea",
+                      "surface-container-high": "#e8e9e2",
+                      "surface-container-low": "#f4f4ed",
+                      "tertiary-container": "#62446b",
+                      "surface-dim": "#dadad4",
+                      "on-error-container": "#93000a",
+                      "surface-variant": "#e3e3dc",
+                      "cream-bg": "#FDFBF7",
+                      "on-tertiary-fixed": "#2b1034",
+                      "on-primary-fixed": "#191e00",
+                      "outline": "#77786b",
+                      "secondary": "#5a6241",
+                      "tertiary": "#4a2d53",
+                      "on-surface": "#1a1c18",
+                      "on-secondary-fixed": "#181e05",
+                      "on-background": "#1a1c18",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "12px",
+                      "2xl": "16px",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "base": "4px",
+                      "lg": "24px",
+                      "margin-mobile": "20px",
+                      "margin-desktop": "40px",
+                      "xl": "32px",
+                      "gutter": "16px",
+                      "xs": "4px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "label-md": ["Inter"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface antialiased overflow-hidden">
+<!-- Top Navigation Bar (Contextual Suppression Logic applied - simplified for onboarding) -->
+<header class="fixed top-0 w-full z-50 bg-surface flex justify-between items-center px-margin-mobile h-16 shadow-sm shadow-olive-drab/5">
+<span class="font-headline-md text-headline-md font-bold text-olive-drab">RUMA</span>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant font-label-md text-label-md px-4 py-2 rounded-xl hover:bg-surface-container-low transition-colors">Skip</button>
+</div>
+</header>
+<main class="relative h-screen w-full flex flex-col pt-16 pb-32">
+<!-- Visual Section: Animated/Tactile Canvas -->
+<div class="flex-grow flex items-center justify-center px-margin-mobile relative">
+<!-- Atmospheric Background Element -->
+<div class="absolute inset-0 z-0 opacity-40">
+
+</div>
+<!-- Central Content: Issue Card Visualization -->
+<div class="relative z-10 w-full max-w-sm">
+<!-- Main Card -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-[0_4px_20px_rgba(75,83,32,0.08)] p-5 bento-card border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-3 items-center">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined fill-icon text-[28px]" data-icon="construction">construction</span>
+</div>
+<div>
+<h3 class="font-headline-md text-[16px] text-charcoal-text leading-tight">Pipa Bocor Kamar 302</h3>
+<p class="font-body-md text-label-sm text-on-surface-variant">Lantai 3 • Apartemen Menteng</p>
+</div>
+</div>
+<div class="bg-secondary-container/30 text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-olive-drab animate-pulse"></span>
+                            In Progress
+                        </div>
+</div>
+<!-- Evidence Photo Preview -->
+<div class="relative aspect-video w-full rounded-xl overflow-hidden bg-surface-container-highest mb-4 group cursor-pointer">
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors"></div>
+<img class="w-full h-full object-cover" data-alt="A realistic high-quality photograph taken by a tenant showing water leaking from a ceiling pipe onto a modern wooden floor. The lighting is natural but dim, characteristic of a residential interior. The aesthetic is clean yet demonstrates a maintenance issue. Subtle shadows and sharp details reflect the RUMA owner app's professional and dependable user interface style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQCyxuxYFu3wISYwJUHzjE0nGHlbtZbj-JCOBH0OigG_oJjwX19klkcVa5nuZGM-jgk-gZAqTXi65FCzIobpF5DY2XG_xvEQtp7f3B36si7Xay78DXKAseICXvNPXDiINPpFEFIPF1Z6qqHCcMpCVGFsm9IUi_DRY_ALnx7N35m3uzSg8xCmSRRoAYc5XBiCsYztaTinJ-FLxf1Q1kLmJFPo9WKRKT0oJTVouhwfZ2Cqh0Jl3TWsRx7A"/>
+<div class="absolute bottom-2 left-2 flex gap-1">
+<div class="bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[12px]" data-icon="image">image</span>
+                                1 of 3
+                            </div>
+</div>
+</div>
+<!-- Action Trace -->
+<div class="space-y-3">
+<div class="flex gap-3 items-center">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-olive-drab"></div>
+<div class="w-[1px] h-4 bg-outline-variant"></div>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant italic">Tenan mengirim laporan (09:15)</span>
+</div>
+<div class="flex gap-3 items-center">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-olive-drab"></div>
+</div>
+<span class="font-body-md text-body-md text-charcoal-text font-medium">Tukang dalam perjalanan (11:45)</span>
+</div>
+</div>
+</div>
+<!-- Floating Supportive Badge -->
+<div class="absolute -top-4 -right-4 bg-olive-drab text-white px-4 py-2 rounded-full shadow-lg font-label-md text-label-md flex items-center gap-2 transform rotate-3">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified_user">verified_user</span>
+                    Transparan
+                </div>
+</div>
+</div>
+<!-- Text Section -->
+<div class="px-margin-mobile text-center space-y-3 mb-8">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-charcoal-text">Solusi Komplain Terintegrasi</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-sm mx-auto">
+                Terima laporan kerusakan dari tenant lengkap dengan foto bukti dan pantau status perbaikannya secara transparan.
+            </p>
+</div>
+<!-- Footer Actions -->
+<div class="fixed bottom-0 w-full p-margin-mobile bg-surface/80 backdrop-blur-md flex flex-col gap-6">
+<!-- Progress Dots -->
+<div class="flex justify-center gap-2">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-6 h-2 rounded-full bg-olive-drab transition-all"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+<!-- Buttons -->
+<div class="flex gap-4 items-center">
+<button class="flex-1 h-14 rounded-2xl bg-surface-container-high text-olive-drab font-bold font-body-lg text-body-lg active:scale-95 transition-all">
+                    Kembali
+                </button>
+<button class="flex-[2] h-14 rounded-2xl bg-olive-drab text-white font-bold font-body-lg text-body-lg shadow-lg shadow-olive-drab/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    Lanjut
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+    </script>
+</body></html>

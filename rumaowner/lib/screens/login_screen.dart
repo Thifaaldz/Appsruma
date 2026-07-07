@@ -97,6 +97,28 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  // Back button — visible only when pushed on top of WelcomeScreen
+                                  if (Navigator.canPop(context))
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: GestureDetector(
+                                        onTap: () => Navigator.pop(context),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.arrow_back,
+                                            color: AppTheme.lightBeige,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  if (Navigator.canPop(context))
+                                    const SizedBox(height: 16),
                                   Align(
                                     alignment: Alignment.center,
                                     child: Image.asset(

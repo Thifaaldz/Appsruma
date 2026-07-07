@@ -1,563 +1,158 @@
-# 🏠 Kos Management System
+# 🏠 RUMA - Sistem Manajemen Kos Modern (Owner & Tenant)
 
-A scalable and modern boarding house (Kos) management system built using:
-
-- Flutter
-- Golang
-- PostgreSQL
-- Docker
-
-This project provides:
-- Owner Application (Ibu Kos)
-- Admin/Tenant Application
-- REST API Backend
-- Multi-role Authentication System
+RUMA adalah ekosistem manajemen kos (boarding house) terintegrasi yang dirancang untuk menjembatani interaksi antara Pemilik Kos (Owner/Ibu Kos) dan Penghuni Kos (Tenant/Anak Kos). Proyek ini menggunakan arsitektur modern berkinerja tinggi berbasis **Golang (Backend)** dan **Flutter (Mobile Frontend)**, serta terintegrasi langsung dengan **Midtrans Payment Gateway (Sandbox)** untuk pembayaran otomatis yang aman.
 
 ---
 
-# 📌 Overview
+## 📂 Struktur Repositori & Dokumentasi Terpisah
 
-This system helps boarding house owners manage:
-- Rooms
-- Tenants
-- Payments
-- Complaints
-- Admin Accounts
-- Financial Reports
+Proyek RUMA dibagi menjadi tiga komponen utama yang memiliki dokumentasi khusus masing-masing:
 
-The system is designed with clean architecture and scalable backend structure.
+### 1. [🏠 RUMA Owner App (Flutter)](./rumaowner/README.md)
+Aplikasi mobile khusus pemilik kos untuk mengelola properti, kamar, pendaftaran penghuni (tenant), pengumuman, pengeluaran operasional, manual payment confirmation, serta melihat analisis laporan keuangan (pendapatan, pengeluaran, laba bersih).
+*   **Selengkapnya:** [Baca Dokumentasi Owner App](./rumaowner/README.md)
+
+### 2. [🔑 RUMA Tenant App (Flutter)](./rumatenant/README.md)
+Aplikasi mobile khusus penghuni kos untuk memantau status sewa kamar, membayar tagihan secara langsung dengan WebView Midtrans Snap, meminta token Snaps, mengajukan komplain kerusakan dengan foto bukti, serta memantau pengumuman kos.
+*   **Selengkapnya:** [Baca Dokumentasi Tenant App](./rumatenant/README.md)
+
+### 3. [⚡ RUMA Backend API (Golang)](./backend/README.md)
+REST API service menggunakan Gin Gonic, GORM ORM, PostgreSQL database, dan integrasi Midtrans Sandbox Engine. Bertanggung jawab atas seluruh logika bisnis sistem.
 
 ---
 
-# 🏗️ System Architecture
+## 🏗️ Arsitektur Sistem Global
 
 ```text
-                        INTERNET
-                            |
-                     NGINX / LOAD BALANCER
-                            |
-                    GOLANG BACKEND API
-                            |
-        ------------------------------------------------
-        |                                              |
-  OWNER APPLICATION                          ADMIN/TENANT APPLICATION
-        Flutter                                        Flutter
-                            |
-                      PostgreSQL Database
-                            |
-                       Redis (Optional)
+                               +-----------------------------+
+                               |     Midtrans PG (Sandbox)   |
+                               +--------------+--------------+
+                                              ^
+                             (API Snap Token) | (Webhook Notification)
+                                              v
++------------------+           +--------------+--------------+           +------------------+
+|                  |  REST API |                             |  REST API |                  |
+|    RUMA Owner    +---------->|        RUMA Backend         |<----------+   RUMA Tenant    |
+|   (Flutter App)  |<----------+        (Golang API)         +---------->|  (Flutter App)   |
+|                  |  JWT Auth |                             |  JWT Auth |                  |
++------------------+           +--------------+--------------+           +------------------+
+                                              |
+                                              | GORM ORM
+                                              v
+                               +--------------+--------------+
+                               |     PostgreSQL Database     |
+                               +-----------------------------+
 ```
 
 ---
 
-# 👥 User Roles
+## 📊 Skema Database Bersama (PostgreSQL)
 
-## 1. Super Admin
-- Manage all boarding house owners
-- Monitor all systems
-- System analytics
-- Global access
+Seluruh entitas database RUMA dikelola menggunakan **GORM Auto-Migration** pada database **PostgreSQL**:
 
----
-
-## 2. Owner (Ibu Kos)
-- Create admin accounts
-- Manage rooms
-- Manage tenants
-- Manage payments
-- View reports
-- Monitor occupancy
+*   **`users`**: Menyimpan kredensial dan profil user dengan peran (`superadmin`, `owner`, `admin`, `tenant`).
+*   **`boarding_houses`**: Menyimpan nama kos, alamat, galeri foto, dan harga default kamar milik owner.
+*   **`rooms`**: Kamar-kamar kos yang terhubung ke properti kos beserta harga sewa dan status ketersediaan (`available`, `occupied`, `maintenance`).
+*   **`tenants`**: Relasi penempatan penghuni (`users`) ke dalam kamar (`rooms`) lengkap dengan tanggal check-in dan tanggal jatuh tempo sewa (`billing_day`).
+*   **`payments`**: Pencatatan tagihan sewa per periode (bulan) beserta status sewa (`pending`, `paid`, `overdue`, `cancelled`) dan ID transaksi Midtrans (`midtrans_order_id`).
+*   **`expenses`**: Pencatatan manual pengeluaran operasional oleh pemilik kos untuk kebutuhan rugi/laba.
+*   **`complaints`**: Pelaporan keluhan fasilitas dari tenant dilengkapi foto bukti dan status perbaikan (`pending`, `in_progress`, `resolved`).
+*   **`announcements`**: Pengumuman publik dari pemilik kos dengan ikon visual (`water`, `electric`, `repair`, `info`).
 
 ---
 
-## 3. Admin
-- Validate tenant data
-- Manage daily operational data
-- Input payment data
-- Handle complaints
+## 🔄 Alur Logika Sistem Utama (Global Flows)
 
----
+### 1. Pembayaran Tagihan Terintegrasi Midtrans (Snap & Webhook)
+Alur transaksi sewa kamar dari inisiasi di aplikasi tenant hingga status lunas terkonfirmasi oleh server:
 
-## 4. Tenant
-- View room information
-- View bills
-- Payment history
-- Complaint submission
-- Notifications
+```mermaid
+sequenceDiagram
+    actor T as Tenant App
+    participant B as RUMA Backend
+    participant M as Midtrans API
+    actor O as Owner App
 
----
+    T->>B: POST /api/payments/:id/snap-token (Minta token pembayaran)
+    B->>B: Generate OrderID: RUMA-PAY-<payment_id>-<unix_timestamp>
+    B->>M: POST /snap/v1/transactions (Jumlah tagihan, detail customer)
+    M->>B: Return Snap Token & URL Pembayaran
+    B->>T: HTTP 200 (Token & Redirect URL)
+    
+    T->>T: Buka WebView memuat Portal Midtrans Snap
+    Note over T: Tenant menyelesaikan pembayaran sewa
+    
+    alt Webhook Midtrans (Skenario Utama)
+        M->>B: POST /api/payments/webhook (Payload: settlement / capture)
+        B->>DB: Ubah Status tagihan ke 'paid', set paid_at = time.Now()
+        B->>M: HTTP 200 OK
+    else Realtime Sync Polling (Fallback Skenario)
+        T->>B: GET /api/payments (Refresh list tagihan)
+        B->>M: GET /v2/:order_id/status (Memeriksa status order ke Midtrans)
+        M->>B: Return status terbaru (settlement/expire)
+        B->>DB: Update database sesuai status terbaru
+        B->>T: Kembalikan data tagihan terbaru yang sinkron
+    end
 
-# 🚀 Features
+    Note over T, O: Status tagihan terupdate menjadi LUNAS di kedua aplikasi mobile.
+```
 
-## Authentication
-- JWT Authentication
-- Role-based Authorization
-- Secure Password Hashing
+### 2. Siklus Penagihan Otomatis (`EnsureNextBillGenerated`)
+Pembangkitan tagihan bulanan dilakukan secara asinkron dan dinamis pada backend setiap kali list pembayaran diakses, menghindari kompleksitas sistem cronjob eksternal:
 
-## Room Management
-- Add room
-- Edit room
-- Delete room
-- Room availability status
-
-## Tenant Management
-- Add tenant
-- Move tenant
-- Tenant history
-
-## Payment System
-- Monthly payment tracking
-- Payment history
-- Outstanding bills
-- Payment status
-
-## Reports
-- Occupancy reports
-- Monthly income reports
-- Financial dashboard
-
-## Notification System
-- Payment reminders
-- Complaint updates
-- Room notifications
-
----
-
-# 🛠️ Tech Stack
-
-## Frontend
-| Technology | Description |
-|---|---|
-| Flutter | Cross-platform mobile application |
-
----
-
-## Backend
-| Technology | Description |
-|---|---|
-| Golang | Backend programming language |
-| Gin | HTTP Web Framework |
-| GORM | ORM for Golang |
-| JWT | Authentication |
-
----
-
-## Database
-| Technology | Description |
-|---|---|
-| PostgreSQL | Relational database |
-
----
-
-## DevOps
-| Technology | Description |
-|---|---|
-| Docker | Containerization |
-| Docker Compose | Multi-container management |
-| NGINX | Reverse proxy |
-
----
-
-# 📂 Project Structure
-
-```text
-kos-management-system/
-│
-├── backend/
-│   ├── cmd/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── repositories/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── main.go
-│   ├── go.mod
-│   └── Dockerfile
-│
-├── frontend-owner/
-│   ├── lib/
-│   ├── assets/
-│   └── pubspec.yaml
-│
-├── frontend-tenant/
-│   ├── lib/
-│   ├── assets/
-│   └── pubspec.yaml
-│
-├── database/
-│   └── init.sql
-│
-├── docker-compose.yml
-│
-└── README.md
+```mermaid
+graph TD
+    A[Aplikasi Panggil GET /api/payments] --> B{Apakah ada transaksi pending/overdue?}
+    B -- Ya --> C[Jangan buat tagihan baru. Kembalikan data saat ini.]
+    B -- Tidak --> D{Apakah Tenant baru check-in tanpa riwayat?}
+    
+    D -- Ya --> E[Buat tagihan pertama pada Tanggal Check-in]
+    D -- Tidak --> F[Ambil tagihan terakhir berdasarkan DueDate]
+    
+    F --> G[Tentukan Tanggal Jatuh Tempo berikutnya: BillingDay di Bulan Depan]
+    G --> H{Apakah saat ini sudah memasuki H-10 sebelum Jatuh Tempo berikutnya?}
+    
+    H -- Tidak --> I[Belum masuk jendela penagihan. Selesai.]
+    H -- Ya --> J{Apakah tagihan periode tersebut sudah pernah dibuat?}
+    
+    J -- Ya --> K[Tagihan periode tersebut sudah ada. Selesai.]
+    J -- Tidak --> L[Buat Record Tagihan Baru: Status pending, DueDate = Jatuh Tempo]
 ```
 
 ---
 
-# 🗄️ Database Schema
+## ⚙️ Konfigurasi Environment & Startup Cepat
 
-## users
-
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    password TEXT,
-    role VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## boarding_houses
-
-```sql
-CREATE TABLE boarding_houses (
-    id SERIAL PRIMARY KEY,
-    owner_id INTEGER REFERENCES users(id),
-    name VARCHAR(100),
-    address TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## rooms
-
-```sql
-CREATE TABLE rooms (
-    id SERIAL PRIMARY KEY,
-    boarding_house_id INTEGER REFERENCES boarding_houses(id),
-    room_number VARCHAR(20),
-    price NUMERIC,
-    status VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## tenants
-
-```sql
-CREATE TABLE tenants (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    room_id INTEGER REFERENCES rooms(id),
-    phone VARCHAR(20),
-    check_in_date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## payments
-
-```sql
-CREATE TABLE payments (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    amount NUMERIC,
-    payment_date DATE,
-    status VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-# 🔐 Authentication
-
-This project uses JWT Authentication.
-
-Example JWT Payload:
-
-```json
-{
-  "user_id": 1,
-  "role": "owner"
-}
-```
-
----
-
-# 🌐 API Endpoints
-
-# Authentication
-
-```http
-POST /api/auth/login
-POST /api/auth/register
-POST /api/auth/logout
-```
-
----
-
-# Rooms
-
-```http
-GET    /api/rooms
-GET    /api/rooms/:id
-POST   /api/rooms
-PUT    /api/rooms/:id
-DELETE /api/rooms/:id
-```
-
----
-
-# Tenants
-
-```http
-GET    /api/tenants
-GET    /api/tenants/:id
-POST   /api/tenants
-PUT    /api/tenants/:id
-DELETE /api/tenants/:id
-```
-
----
-
-# Payments
-
-```http
-GET    /api/payments
-GET    /api/payments/:id
-POST   /api/payments
-```
-
----
-
-# Complaints
-
-```http
-GET    /api/complaints
-POST   /api/complaints
-PUT    /api/complaints/:id
-```
-
----
-
-# ⚙️ Installation
-
-# 1. Clone Repository
-
-```bash
-git clone https://github.com/yourusername/kos-management-system.git
-cd kos-management-system
-```
-
----
-
-# 2. Create Environment File
-
-Create `.env`
-
+### 1. Konfigurasi Backend (`backend/.env`)
 ```env
 APP_PORT=8080
-
 DB_HOST=postgres
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=kosdb
-
-JWT_SECRET=supersecretkey
+JWT_SECRET=supersecretkeyandauntukjwttoken2026
+MIDTRANS_SERVER_KEY=SB-Mid-server-Jw5gV97y0u-0H1x2z3Y4W5V6
 ```
 
----
-
-# 3. Run Using Docker
-
+### 2. Cara Menjalankan Backend & DB
 ```bash
+# Menyalakan PostgreSQL & Go Server via Docker Compose
 docker compose up --build
 ```
 
----
-
-# 4. Stop Containers
-
+### 3. Cara Menjalankan Aplikasi Mobile
+Gunakan script `start.sh` di root direktori untuk kemudahan koneksi otomatis IP komputer lokal ke perangkat uji:
 ```bash
-docker compose down
+# Jalankan Owner App
+./start.sh owner
+
+# Jalankan Tenant App
+./start.sh tenant
 ```
 
 ---
 
-# 🐳 Docker Setup
+## 👨‍💻 Lisensi & Hubungi Kami
 
-## Backend Dockerfile
-
-```dockerfile
-FROM golang:1.26
-
-WORKDIR /app
-
-COPY go.mod go.sum ./
-RUN go mod tidy
-
-COPY . .
-
-RUN go build -o main .
-
-EXPOSE 8080
-
-CMD ["./main"]
-```
-
----
-
-# Docker Compose
-
-```yaml
-version: '3.9'
-
-services:
-  backend:
-    build: ./backend
-    container_name: kos-backend
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-
-  postgres:
-    image: postgres:16
-    container_name: kos-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: kosdb
-    ports:
-      - "5432:5432"
-```
-
----
-
-# ▶️ Run Backend Locally
-
-```bash
-go mod tidy
-go run main.go
-```
-
----
-
-# 📱 Flutter Setup
-
-```bash
-flutter pub get
-flutter run
-```
-
----
-
-# 🔒 Security
-
-- JWT Authentication
-- bcrypt Password Hashing
-- Role-based Access Control
-- Middleware Authorization
-- Environment Variable Configuration
-
----
-
-# 📈 Scalability Plan
-
-Future scalable architecture:
-
-```text
-Flutter Apps
-     |
-API Gateway
-     |
-Microservices
-     |
-PostgreSQL Cluster
-     |
-Redis Cache
-     |
-Message Queue
-```
-
----
-
-# 📌 Future Improvements
-
-- Midtrans Payment Gateway
-- WhatsApp Notification
-- QRIS Payment
-- Realtime Chat
-- Push Notification
-- Multi-branch Support
-- Analytics Dashboard
-- Attendance System
-- Smart Lock Integration
-
----
-
-# 🧪 Testing
-
-## Run Unit Test
-
-```bash
-go test ./...
-```
-
----
-
-# ☁️ Recommended Deployment
-
-## VPS
-- Ubuntu 24.04
-- Docker
-- NGINX
-- PostgreSQL
-
-## Cloud
-- AWS
-- DigitalOcean
-- Google Cloud
-- Oracle Cloud
-
----
-
-# 📄 License
-
-MIT License
-
----
-
-# 👨‍💻 Author
-
-Developed for scalable boarding house management system architecture.
-
----
-
-# ⭐ Contribution
-
-Pull requests are welcome.
-
-For major changes:
-1. Fork repository
-2. Create feature branch
-3. Commit changes
-4. Push branch
-5. Open Pull Request
-
----
-
-# 📞 Support
-
-If you encounter issues:
-- Open GitHub Issues
-- Contact project maintainer
-- Submit pull requests
-
----
+Proyek ini berada di bawah lisensi **MIT**. Untuk kontribusi kode atau laporan bug sistem, silakan buat Pull Request atau buka Github Issue pada repositori ini.

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RUMA - Kelola Properti Lebih Mudah</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7; /* cream-bg from design system */
+            overflow-x: hidden;
+        }
+        .illustration-container::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(164, 172, 134, 0.15) 0%, rgba(253, 251, 247, 0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#2b1034",
+                      "outline": "#77786b",
+                      "tertiary-fixed-dim": "#e0bae8",
+                      "primary-container": "#4b5320",
+                      "on-error": "#ffffff",
+                      "tertiary-container": "#62446b",
+                      "error-container": "#ffdad6",
+                      "secondary": "#5a6241",
+                      "surface-container-low": "#f4f4ed",
+                      "on-secondary-fixed": "#181e05",
+                      "on-secondary-fixed-variant": "#434a2b",
+                      "charcoal-text": "#1A1C18",
+                      "surface-tint": "#5a632e",
+                      "on-primary-fixed-variant": "#434b18",
+                      "sage-accent": "#A4AC86",
+                      "inverse-primary": "#c3cc8c",
+                      "surface-dim": "#dadad4",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed-dim": "#c3cba3",
+                      "error": "#ba1a1a",
+                      "surface-container": "#eeeee7",
+                      "surface-container-highest": "#e3e3dc",
+                      "tertiary": "#4a2d53",
+                      "on-primary-fixed": "#191e00",
+                      "on-secondary-container": "#606847",
+                      "primary": "#343c0a",
+                      "on-surface-variant": "#47483c",
+                      "inverse-on-surface": "#f1f1ea",
+                      "on-primary-container": "#bdc787",
+                      "on-tertiary-container": "#dab4e2",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-variant": "#e3e3dc",
+                      "secondary-container": "#dfe7bd",
+                      "primary-fixed-dim": "#c3cc8c",
+                      "background": "#fafaf3",
+                      "olive-drab": "#4B5320",
+                      "tertiary-fixed": "#f9d8ff",
+                      "on-surface": "#1a1c18",
+                      "outline-variant": "#c8c7b8",
+                      "surface-container-high": "#e8e9e2",
+                      "primary-fixed": "#dfe8a6",
+                      "inverse-surface": "#2f312d",
+                      "surface-bright": "#fafaf3",
+                      "on-secondary": "#ffffff",
+                      "surface": "#fafaf3",
+                      "on-tertiary-fixed-variant": "#593c62",
+                      "secondary-fixed": "#dfe7bd",
+                      "on-background": "#1a1c18",
+                      "cream-bg": "#FDFBF7",
+                      "on-error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xs": "4px",
+                      "gutter": "16px",
+                      "base": "4px",
+                      "sm": "8px",
+                      "md": "16px",
+                      "xl": "32px",
+                      "margin-mobile": "20px",
+                      "margin-desktop": "40px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-cream-bg text-on-surface antialiased min-h-screen flex flex-col">
+<!-- Top Navigation Placeholder (Supressed as per Transactional/Onboarding rule, but Brand Identity maintained) -->
+<header class="w-full flex justify-center pt-xl pb-md">
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-on-primary-container shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">apartment</span>
+</div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">RUMA</span>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile text-center max-w-md mx-auto w-full">
+<!-- Illustration Section -->
+<div class="illustration-container relative mb-xl w-full flex justify-center fade-in" style="animation-delay: 0.1s;">
+<div class="relative w-72 h-72">
+<img class="w-full h-full object-contain" data-alt="A sophisticated flat illustration of a professional landlord holding a sleek digital tablet. The person is standing next to a stylized modern house with organic shapes and clean lines. The background features floating UI elements like financial charts and home icons, all rendered in a soft palette of olive green, sage, and cream, following a minimalist and tactile aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzHMcroqdN60Wp3bZ2LIbUh5BJc5Sg6dDjHR74sSVZgK51_1Rz6REA-GgUYWqqKJlIe4UXsHEY-4Tm83u58jmN4u-TzY6rs7fXnHYud3fmt5DLT1uVamNjWnE-5rzbT0adwSYLFL4gN9YgdsFIaUmmmxiCqCQMhFklCfiZ6QrfsILQoOLJXnn8sVwsHea4LNxpWpXdFAvKpdsmtzsCkGRFu3ajQ8q4OOsrcLs9YHKuZDlGPL_g7RfrXg"/>
+<!-- Atmospheric Micro-interactions -->
+<div class="absolute top-4 -right-4 bg-white p-3 rounded-xl shadow-[0_4px_20px_0_rgba(75,83,32,0.06)] animate-bounce duration-[3000ms]">
+<span class="material-symbols-outlined text-sage-accent">trending_up</span>
+</div>
+<div class="absolute bottom-10 -left-4 bg-white p-3 rounded-xl shadow-[0_4px_20px_0_rgba(75,83,32,0.06)] animate-pulse">
+<span class="material-symbols-outlined text-primary">key</span>
+</div>
+</div>
+</div>
+<!-- Copy Section -->
+<div class="space-y-md fade-in" style="animation-delay: 0.2s;">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary px-4">
+                Kelola Properti Lebih Mudah
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant px-2 leading-relaxed">
+                Pantau okupansi, catat keuangan, dan tangani komplain penghuni dalam satu genggaman.
+            </p>
+</div>
+<!-- Action Section -->
+<div class="w-full mt-xl space-y-md fade-in" style="animation-delay: 0.3s;">
+<button class="w-full h-14 bg-primary text-white font-headline-md text-headline-md rounded-xl shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 hover:bg-opacity-90">
+                Mulai Sekarang
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<a class="inline-block w-full py-sm font-label-md text-label-md text-primary tracking-widest hover:text-primary-container transition-colors" href="#">
+                MASUK KE AKUN
+            </a>
+</div>
+<!-- Visual Anchor (Subtle indicator for onboarding) -->
+<div class="mt-xl flex gap-2">
+<div class="w-8 h-2 bg-primary rounded-full"></div>
+<div class="w-2 h-2 bg-outline-variant rounded-full"></div>
+<div class="w-2 h-2 bg-outline-variant rounded-full"></div>
+</div>
+</main>
+<!-- Footer Identity -->
+<footer class="py-xl text-center fade-in" style="animation-delay: 0.4s;">
+<p class="font-label-sm text-label-sm text-outline uppercase tracking-widest opacity-60">
+            Professional Property Management
+        </p>
+</footer>
+<script>
+        // Micro-interaction for the primary button
+        const mainBtn = document.querySelector('button');
+        mainBtn.addEventListener('mouseenter', () => {
+            mainBtn.classList.add('shadow-xl');
+        });
+        mainBtn.addEventListener('mouseleave', () => {
+            mainBtn.classList.remove('shadow-xl');
+        });
+
+        // Simple entrance logic for elements
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+            });
+        });
+    </script>
+</body></html>

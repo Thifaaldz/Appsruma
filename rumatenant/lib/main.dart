@@ -6,8 +6,8 @@ import 'providers/complaint_provider.dart';
 import 'providers/tenant_provider.dart';
 import 'core/theme.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +81,7 @@ class _StartupGateState extends State<StartupGate> {
     }
 
     final child = showTarget
-        ? (auth.token != null ? const MainScreen() : const LoginScreen())
+        ? (auth.token != null ? const MainScreen() : const WelcomeScreen())
         : const SplashScreen();
 
     return AnimatedSwitcher(
@@ -101,7 +101,7 @@ class _StartupGateState extends State<StartupGate> {
       },
       child: KeyedSubtree(
         key: ValueKey<String>(
-          showTarget ? (auth.token != null ? 'main' : 'login') : 'splash',
+          showTarget ? (auth.token != null ? 'main' : 'welcome') : 'splash',
         ),
         child: child,
       ),
