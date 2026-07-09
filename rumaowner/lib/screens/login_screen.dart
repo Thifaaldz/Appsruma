@@ -157,7 +157,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                   TextField(
                                     controller: _emailController,
                                     keyboardType: TextInputType.emailAddress,
-                                    decoration: const InputDecoration(),
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: 'nama@email.com',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.45),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(alpha: 0.12),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: Colors.white.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: AppTheme.lightBeige,
+                                          width: 1.6,
+                                        ),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 16,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 18),
                                   Row(
@@ -191,7 +216,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                   TextField(
                                     controller: _passwordController,
                                     obscureText: true,
-                                    decoration: const InputDecoration(),
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: '••••••••',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.45),
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(alpha: 0.12),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: Colors.white.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: AppTheme.lightBeige,
+                                          width: 1.6,
+                                        ),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 16,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   Align(
@@ -220,56 +270,74 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 22),
-                                  Center(
-                                    child: SizedBox(
-                                      width: 120,
-                                      child: ElevatedButton(
-                                        onPressed: authProvider.isLoading
-                                            ? null
-                                            : () async {
-                                                final messenger =
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    );
-                                                final success =
-                                                    await authProvider.login(
-                                                      _emailController.text
-                                                          .trim(),
-                                                      _passwordController.text
-                                                          .trim(),
-                                                    );
-                                                if (!mounted) return;
-                                                if (!success) {
-                                                  messenger.showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Login Failed',
-                                                      ),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: authProvider.isLoading
+                                          ? null
+                                          : () async {
+                                              final email = _emailController.text.trim();
+                                              final password = _passwordController.text.trim();
+                                              final messenger =
+                                                  ScaffoldMessenger.of(context);
+                                              if (email.isEmpty || password.isEmpty) {
+                                                messenger.showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Email dan kata sandi harus diisi.',
                                                     ),
+                                                  ),
+                                                );
+                                                return;
+                                              }
+                                              final success =
+                                                  await authProvider.login(
+                                                    email,
+                                                    password,
                                                   );
-                                                }
-                                              },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppTheme.lightBeige,
-                                          foregroundColor: AppTheme.textDark,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                        ),
-                                        child: authProvider.isLoading
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: AppTheme.darkOlive,
+                                              if (!mounted) return;
+                                              if (success) {
+                                                // Pop semua route agar StartupGate bisa
+                                                // menampilkan BoardingHouseSelectionScreen
+                                                Navigator.of(context).popUntil(
+                                                  (route) => route.isFirst,
+                                                );
+                                              } else {
+                                                messenger.showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Email atau kata sandi salah.',
                                                     ),
-                                              )
-                                            : const Text('Login'),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.lightBeige,
+                                        foregroundColor: AppTheme.oliveDark,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 18),
+                                        elevation: 0,
                                       ),
+                                      child: authProvider.isLoading
+                                          ? const SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: AppTheme.oliveDark,
+                                              ),
+                                            )
+                                          : Text(
+                                              'Masuk',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: AppTheme.oliveDark,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ],

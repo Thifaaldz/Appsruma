@@ -1,6 +1,10 @@
 class Announcement {
   final int id;
   final int ownerId;
+  final int boardingHouseId;
+  final String targetType;
+  final int? targetUserId;
+  final String? targetUserName;
   final String title;
   final String content;
   final DateTime date;
@@ -10,6 +14,10 @@ class Announcement {
   Announcement({
     required this.id,
     required this.ownerId,
+    required this.boardingHouseId,
+    this.targetType = 'boarding_house',
+    this.targetUserId,
+    this.targetUserName,
     required this.title,
     required this.content,
     required this.date,
@@ -21,6 +29,10 @@ class Announcement {
     return Announcement(
       id: json['id'] ?? 0,
       ownerId: json['owner_id'] ?? 0,
+      boardingHouseId: json['boarding_house_id'] ?? 0,
+      targetType: json['target_type'] ?? 'boarding_house',
+      targetUserId: json['target_user_id'],
+      targetUserName: json['target_user']?['name'],
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       date: json['date'] != null
@@ -36,8 +48,12 @@ class Announcement {
   Map<String, dynamic> toJson() {
     return {
       'title': title,
+      'boarding_house_id': boardingHouseId,
+      'target_type': targetType,
+      if (targetUserId != null) 'target_user_id': targetUserId,
       'content': content,
-      'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+      'date':
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
       'icon': icon,
     };
   }

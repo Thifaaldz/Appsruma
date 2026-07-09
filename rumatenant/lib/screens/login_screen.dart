@@ -209,12 +209,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                             return;
                                           }
 
-                                          if (!success) {
+                                          if (success) {
+                                            // Pop semua route agar StartupGate bisa
+                                            // menampilkan MainScreen
+                                            Navigator.of(context).popUntil(
+                                              (route) => route.isFirst,
+                                            );
+                                          } else {
                                             messenger.showSnackBar(
-                                              SnackBar(
+                                              const SnackBar(
                                                 content: Text(
-                                                  authProvider.errorMessage ??
-                                                      'Email atau kata sandi salah.',
+                                                  'Email atau kata sandi salah.',
                                                 ),
                                               ),
                                             );

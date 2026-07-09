@@ -8,26 +8,74 @@ class TenantProvider with ChangeNotifier {
   List<Map<String, dynamic>> _tenantUsers = [];
   bool _isLoading = false;
   int? _lastBoardingHouseId;
+  int? _activeBoardingHouseId;
+  int? _tenantUsersBoardingHouseId;
 
-  List<Tenant> get tenants => _tenants;
-  List<Map<String, dynamic>> get tenantUsers => _tenantUsers;
+  List<Tenant> get tenants {
+    final scopeId = _activeBoardingHouseId ?? _lastBoardingHouseId;
+    if (scopeId == null) return _tenants;
+    return _tenants
+        .where((tenant) => tenant.boardingHouseId == scopeId)
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get tenantUsers {
+    final scopeId = _activeBoardingHouseId ?? _lastBoardingHouseId;
+    if (scopeId == null || _tenantUsersBoardingHouseId != scopeId) {
+      return [];
+    }
+    return _tenantUsers;
+  }
+
   bool get isLoading => _isLoading;
+  int? get activeBoardingHouseId => _activeBoardingHouseId;
+  int? get tenantUsersBoardingHouseId => _tenantUsersBoardingHouseId;
+
+  void setActiveBoardingHouse(int? boardingHouseId) {
+    _activeBoardingHouseId = boardingHouseId;
+    _lastBoardingHouseId = boardingHouseId;
+    if (boardingHouseId == null) {
+      _tenants = [];
+      _tenantUsers = [];
+      _tenantUsersBoardingHouseId = null;
+    } else {
+      _tenants = _tenants
+          .where((tenant) => tenant.boardingHouseId == boardingHouseId)
+          .toList();
+      _tenantUsers = [];
+      _tenantUsersBoardingHouseId = null;
+    }
+    notifyListeners();
+  }
 
   Future<void> fetchTenants({int? boardingHouseId}) async {
     _isLoading = true;
-    _lastBoardingHouseId = boardingHouseId;
+    final scopedBoardingHouseId = boardingHouseId ?? _activeBoardingHouseId;
+    if (scopedBoardingHouseId != null) {
+      _activeBoardingHouseId = scopedBoardingHouseId;
+    }
+    _lastBoardingHouseId = scopedBoardingHouseId;
     notifyListeners();
 
     try {
-      final params = boardingHouseId != null
-          ? {'boarding_house_id': boardingHouseId.toString()}
+      final params = scopedBoardingHouseId != null
+          ? {'boarding_house_id': scopedBoardingHouseId.toString()}
           : null;
-      final response = await _apiClient.dio.get('/tenants',
-          queryParameters: params);
+      final response = await _apiClient.dio.get(
+        '/tenants',
+        queryParameters: params,
+      );
       if (response.statusCode == 200) {
-        _tenants = (response.data as List)
+        final fetchedTenants = (response.data as List)
             .map((e) => Tenant.fromJson(e))
             .toList();
+        _tenants = scopedBoardingHouseId == null
+            ? fetchedTenants
+            : fetchedTenants
+                  .where(
+                    (tenant) => tenant.boardingHouseId == scopedBoardingHouseId,
+                  )
+                  .toList();
       }
     } catch (e) {
       print('Fetch tenants error: $e');
@@ -37,13 +85,30 @@ class TenantProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTenantUsers() async {
+  Future<void> fetchTenantUsers({int? boardingHouseId}) async {
     try {
-      final response = await _apiClient.dio.get('/auth/tenants');
+      final scopedBoardingHouseId = boardingHouseId ?? _activeBoardingHouseId;
+      if (scopedBoardingHouseId == null) {
+        _tenantUsers = [];
+        _tenantUsersBoardingHouseId = null;
+        notifyListeners();
+        return;
+      }
+      _activeBoardingHouseId = scopedBoardingHouseId;
+      _lastBoardingHouseId = scopedBoardingHouseId;
+      final response = await _apiClient.dio.get(
+        '/auth/tenants',
+        queryParameters: {
+          'boarding_house_id': scopedBoardingHouseId.toString(),
+        },
+      );
       if (response.statusCode == 200) {
         _tenantUsers = List<Map<String, dynamic>>.from(response.data);
+        _tenantUsersBoardingHouseId = scopedBoardingHouseId;
       }
     } catch (e) {
+      _tenantUsers = [];
+      _tenantUsersBoardingHouseId = null;
       print('Fetch tenant users error: $e');
     }
     notifyListeners();

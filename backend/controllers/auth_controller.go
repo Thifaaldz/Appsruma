@@ -5,6 +5,8 @@ import (
 	"ruma/config"
 	"ruma/models"
 	"ruma/services"
+	"ruma/utils"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,10 +29,78 @@ func NewAuthController(authService services.AuthService) *AuthController {
 }
 
 func (ctrl *AuthController) GetTenantUsers(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
 	var users []models.User
-	if err := config.DB.Where("role = ?", "tenant").Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
-		return
+
+	if role == "owner" {
+		var roomIDs []uint
+		bhIDStr := c.Query("boarding_house_id")
+		if bhIDStr != "" {
+			bhID, err := strconv.Atoi(bhIDStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid boarding_house_id"})
+				return
+			}
+			owns, verifyErr := utils.OwnerOwnsBoardingHouse(userID.(uint), uint(bhID))
+			if verifyErr != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
+				return
+			}
+			if !owns {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+			if err := config.DB.Model(&models.Room{}).
+				Where("boarding_house_id = ?", uint(bhID)).
+				Pluck("id", &roomIDs).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
+				return
+			}
+		} else {
+			var err error
+			roomIDs, err = utils.GetOwnerRoomIDs(userID.(uint))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
+				return
+			}
+		}
+
+		if len(roomIDs) == 0 {
+			c.JSON(http.StatusOK, []models.User{})
+			return
+		}
+
+		var userIDs []uint
+		if err := config.DB.Model(&models.Tenant{}).
+			Where("room_id IN ?", roomIDs).
+			Pluck("user_id", &userIDs).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tenants"})
+			return
+		}
+		if len(userIDs) == 0 {
+			c.JSON(http.StatusOK, []models.User{})
+			return
+		}
+		if err := config.DB.Where("role = ? AND id IN ?", "tenant", userIDs).Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+			return
+		}
+	} else if role == "tenant" {
+		if err := config.DB.Where("role = ? AND id = ?", "tenant", userID.(uint)).Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+			return
+		}
+	} else {
+		if err := config.DB.Where("role = ?", "tenant").Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+			return
+		}
+	}
+
+	for i := range users {
+		users[i].Password = ""
 	}
 	c.JSON(http.StatusOK, users)
 }

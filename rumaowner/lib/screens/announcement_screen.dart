@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../models/announcement.dart';
 import '../providers/announcement_provider.dart';
+import '../providers/boarding_house_provider.dart';
 import '../providers/payment_provider.dart';
+import '../providers/tenant_provider.dart';
 import '../widgets/owner_widgets.dart';
 
 class AnnouncementScreen extends StatefulWidget {
@@ -22,14 +24,25 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   bool _showForm = false;
   bool _isSaving = false;
   String _activeTab = 'info'; // 'info' or 'notif'
+  String _targetType = 'boarding_house';
+  int? _selectedTargetUserId;
+  int? _loadedTenantUsersForBoardingHouseId;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<AnnouncementProvider>().fetchAnnouncements();
-      context.read<PaymentProvider>().fetchPayments();
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
+      context.read<AnnouncementProvider>().fetchAnnouncements(
+        boardingHouseId: bhId,
+      );
+      context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+      context.read<TenantProvider>().fetchTenantUsers(boardingHouseId: bhId);
+      _loadedTenantUsersForBoardingHouseId = bhId;
     });
   }
 
@@ -72,12 +85,33 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       );
       return;
     }
+    final selectedBh = context
+        .read<BoardingHouseProvider>()
+        .selectedBoardingHouse;
+    if (selectedBh == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih kos dulu sebelum membuat pengumuman'),
+        ),
+      );
+      return;
+    }
+
+    if (_targetType == 'user' && _selectedTargetUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih penghuni tujuan pengumuman')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 
     final announcement = Announcement(
       id: 0,
       ownerId: 0,
+      boardingHouseId: selectedBh.id,
+      targetType: _targetType,
+      targetUserId: _targetType == 'user' ? _selectedTargetUserId : null,
       title: title,
       content: content,
       date: _selectedDate ?? DateTime.now(),
@@ -85,8 +119,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       createdAt: DateTime.now(),
     );
 
-    final success =
-        await context.read<AnnouncementProvider>().addAnnouncement(announcement);
+    final success = await context.read<AnnouncementProvider>().addAnnouncement(
+      announcement,
+      boardingHouseId: selectedBh.id,
+    );
 
     if (!mounted) return;
     setState(() => _isSaving = false);
@@ -96,6 +132,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       _contentController.clear();
       setState(() {
         _selectedDate = null;
+        _targetType = 'boarding_house';
+        _selectedTargetUserId = null;
         _showForm = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,13 +170,20 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final success =
-        await context.read<AnnouncementProvider>().deleteAnnouncement(item.id);
+    final bhId = context
+        .read<BoardingHouseProvider>()
+        .selectedBoardingHouse
+        ?.id;
+    final success = await context
+        .read<AnnouncementProvider>()
+        .deleteAnnouncement(item.id, boardingHouseId: bhId);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? 'Pengumuman berhasil dihapus' : 'Gagal menghapus pengumuman',
+          success
+              ? 'Pengumuman berhasil dihapus'
+              : 'Gagal menghapus pengumuman',
         ),
       ),
     );
@@ -166,23 +211,76 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     return formatter.format(amount);
   }
 
+  int? _readUserId(Map<String, dynamic> user) {
+    final id = user['id'];
+    if (id is int) return id;
+    if (id is num) return id.toInt();
+    return int.tryParse(id?.toString() ?? '');
+  }
+
+  void _ensureTenantUsersForBoardingHouse(int? boardingHouseId) {
+    if (boardingHouseId == null ||
+        _loadedTenantUsersForBoardingHouseId == boardingHouseId) {
+      return;
+    }
+
+    _loadedTenantUsersForBoardingHouseId = boardingHouseId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<TenantProvider>().fetchTenantUsers(
+        boardingHouseId: boardingHouseId,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final announcementProvider = context.watch<AnnouncementProvider>();
     final paymentProvider = context.watch<PaymentProvider>();
+    final tenantProvider = context.watch<TenantProvider>();
+    final selectedBh = context
+        .watch<BoardingHouseProvider>()
+        .selectedBoardingHouse;
 
     // Filter paid payments to show as notifications
     final paidPayments = paymentProvider.payments
         .where((p) => p.status == 'paid')
         .toList();
+    final selectedBhId = selectedBh?.id;
+    _ensureTenantUsersForBoardingHouse(selectedBhId);
+    final tenantUsers =
+        selectedBhId != null &&
+            tenantProvider.tenantUsersBoardingHouseId == selectedBhId
+        ? tenantProvider.tenantUsers
+        : <Map<String, dynamic>>[];
+
+    if (_selectedTargetUserId != null &&
+        !tenantUsers.any(
+          (user) => _readUserId(user) == _selectedTargetUserId,
+        )) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedTargetUserId = null);
+      });
+    }
 
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
         onRefresh: () async {
-          await context.read<AnnouncementProvider>().fetchAnnouncements();
+          final bhId = context
+              .read<BoardingHouseProvider>()
+              .selectedBoardingHouse
+              ?.id;
+          final announcementProvider = context.read<AnnouncementProvider>();
+          final paymentProvider = context.read<PaymentProvider>();
+          final tenantProvider = context.read<TenantProvider>();
+          await announcementProvider.fetchAnnouncements(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<PaymentProvider>().fetchPayments();
+          await Future.wait([
+            paymentProvider.fetchPayments(boardingHouseId: bhId),
+            tenantProvider.fetchTenantUsers(boardingHouseId: bhId),
+          ]);
+          _loadedTenantUsersForBoardingHouseId = bhId;
         },
         color: AppTheme.darkOlive,
         child: SingleChildScrollView(
@@ -204,7 +302,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                           _activeTab == 'info'
                               ? 'Kirim info ke semua penghuni'
                               : 'Notifikasi Masuk',
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                          style: Theme.of(context).textTheme.displayLarge
+                              ?.copyWith(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -212,9 +311,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                         const SizedBox(height: 2),
                         Text(
                           _activeTab == 'info'
-                              ? 'Pantau pembaruan penting di area hunian Anda'
+                              ? 'Untuk ${selectedBh?.name ?? 'kos terpilih'}'
                               : 'Riwayat transaksi lunas dan aktivitas sistem',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: AppTheme.textSecondary,
                                 fontSize: 12,
                               ),
@@ -316,24 +416,26 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                 Text(
                   'Daftar Pengumuman Terbaru',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Paling baru diurutkan paling atas',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 if (announcementProvider.isLoading)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppTheme.darkOlive),
+                      child: CircularProgressIndicator(
+                        color: AppTheme.darkOlive,
+                      ),
                     ),
                   )
                 else if (announcementProvider.announcements.isEmpty)
@@ -344,9 +446,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                         child: Text(
                           'Belum ada pengumuman.\nTekan + untuk membuat pengumuman baru.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textSecondary),
                         ),
                       ),
                     ),
@@ -370,7 +471,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                   crossFadeState: _showForm
                       ? CrossFadeState.showFirst
                       : CrossFadeState.showSecond,
-                  firstChild: _buildForm(),
+                  firstChild: _buildForm(tenantUsers),
                   secondChild: GestureDetector(
                     onTap: () => setState(() => _showForm = true),
                     child: OwnerPanel(
@@ -382,7 +483,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Buat Pengumuman Baru',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
                                   color: AppTheme.lightBeige,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -397,24 +499,26 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                 Text(
                   'Aktivitas Pembayaran Tenant',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Konfirmasi otomatis dari Midtrans',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 if (paymentProvider.isLoading)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppTheme.darkOlive),
+                      child: CircularProgressIndicator(
+                        color: AppTheme.darkOlive,
+                      ),
                     ),
                   )
                 else if (paidPayments.isEmpty)
@@ -425,9 +529,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                         child: Text(
                           'Belum ada riwayat pembayaran lunas.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textSecondary),
                         ),
                       ),
                     ),
@@ -437,7 +540,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                     (p) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: OwnerPanel(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -461,7 +567,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                                 children: [
                                   Text(
                                     'Pembayaran Diterima',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
                                         ),
@@ -469,7 +578,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${p.tenant?.userName ?? 'Tenant'} (${p.tenant?.roomNumber ?? 'Room'}) telah membayar tagihan ${p.billingPeriod} sebesar ${_formatCurrency(p.amount)}.',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
                                           color: AppTheme.textDark,
                                           fontSize: 12,
                                         ),
@@ -477,9 +587,16 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     p.paidAt != null
-                                        ? DateFormat('d MMM yyyy, HH.mm', 'id_ID').format(p.paidAt!)
-                                        : DateFormat('d MMM yyyy, HH.mm', 'id_ID').format(p.paymentDate),
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        ? DateFormat(
+                                            'd MMM yyyy, HH.mm',
+                                            'id_ID',
+                                          ).format(p.paidAt!)
+                                        : DateFormat(
+                                            'd MMM yyyy, HH.mm',
+                                            'id_ID',
+                                          ).format(p.paymentDate),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
                                           color: AppTheme.textSecondary,
                                           fontSize: 11,
                                         ),
@@ -500,7 +617,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(List<Map<String, dynamic>> tenantUsers) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -550,6 +667,76 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
         ),
         const SizedBox(height: 4),
         _helperText('Pengumuman akan ditampilkan mulai tanggal tersebut.'),
+        const SizedBox(height: 16),
+        _formLabel('Target Penyebaran'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _TargetOptionButton(
+                label: 'Kos',
+                icon: Icons.home_work_outlined,
+                selected: _targetType == 'boarding_house',
+                onTap: () => setState(() {
+                  _targetType = 'boarding_house';
+                  _selectedTargetUserId = null;
+                }),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TargetOptionButton(
+                label: 'Penghuni',
+                icon: Icons.person_outline,
+                selected: _targetType == 'user',
+                onTap: () => setState(() => _targetType = 'user'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _helperText(
+          _targetType == 'boarding_house'
+              ? 'Dikirim ke semua penghuni di kos aktif.'
+              : 'Dikirim hanya ke penghuni yang dipilih.',
+        ),
+        if (_targetType == 'user') ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue:
+                tenantUsers.any(
+                  (user) => _readUserId(user) == _selectedTargetUserId,
+                )
+                ? _selectedTargetUserId
+                : null,
+            isExpanded: true,
+            decoration: _inputDecoration('Pilih penghuni'),
+            items: tenantUsers
+                .map((user) {
+                  final id = _readUserId(user);
+                  if (id == null) return null;
+                  final name = user['name']?.toString() ?? 'Penghuni';
+                  final email = user['email']?.toString() ?? '';
+                  return DropdownMenuItem<int>(
+                    value: id,
+                    child: Text(
+                      email.isEmpty ? name : '$name - $email',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                })
+                .whereType<DropdownMenuItem<int>>()
+                .toList(),
+            onChanged: (value) => setState(() => _selectedTargetUserId = value),
+          ),
+          const SizedBox(height: 4),
+          _helperText(
+            tenantUsers.isEmpty
+                ? 'Belum ada penghuni di kos ini.'
+                : 'Daftar ini mengikuti kos yang sedang aktif.',
+          ),
+        ],
         const SizedBox(height: 24),
         Row(
           children: [
@@ -560,6 +747,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                   _contentController.clear();
                   setState(() {
                     _selectedDate = null;
+                    _targetType = 'boarding_house';
+                    _selectedTargetUserId = null;
                     _showForm = false;
                   });
                 },
@@ -573,9 +762,9 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                 child: Text(
                   'Batal',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppTheme.darkOlive,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppTheme.darkOlive,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -616,9 +805,9 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     return Text(
       text,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
+        fontWeight: FontWeight.w700,
+        fontSize: 15,
+      ),
     );
   }
 
@@ -626,9 +815,9 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     return Text(
       text,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-          ),
+        color: AppTheme.textSecondary,
+        fontSize: 12,
+      ),
     );
   }
 
@@ -669,6 +858,10 @@ class _AnnouncementRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateLabel = DateFormat('EEEE, HH.mm', 'id_ID').format(item.date);
+    final isUserTarget = item.targetType == 'user';
+    final targetLabel = isUserTarget
+        ? 'Untuk ${item.targetUserName ?? 'penghuni tertentu'}'
+        : 'Untuk semua penghuni kos';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -692,25 +885,38 @@ class _AnnouncementRow extends StatelessWidget {
                 Text(
                   item.title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.content,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textDark,
-                        fontSize: 12,
-                      ),
+                    color: AppTheme.textDark,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '$dateLabel WIB',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _TargetBadge(
+                      label: targetLabel,
+                      icon: isUserTarget
+                          ? Icons.person_outline
+                          : Icons.home_work_outlined,
+                    ),
+                    Text(
+                      '$dateLabel WIB',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTheme.textSecondary,
                         fontSize: 11,
                       ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -721,6 +927,100 @@ class _AnnouncementRow extends StatelessWidget {
               Icons.delete_outline,
               size: 20,
               color: Color(0xFFB23A48),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TargetOptionButton extends StatelessWidget {
+  const _TargetOptionButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.darkOlive : AppTheme.cardWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppTheme.darkOlive : const Color(0xFFE0DDD6),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppTheme.lightBeige : AppTheme.textDark,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: selected ? AppTheme.lightBeige : AppTheme.textDark,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TargetBadge extends StatelessWidget {
+  const _TargetBadge({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F0E0),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE7DABF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppTheme.textSecondary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

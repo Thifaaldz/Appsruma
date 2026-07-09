@@ -33,7 +33,10 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
       context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
     });
@@ -64,7 +67,10 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
     }
 
     setState(() => _isLoading = true);
-    final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+    final bhId = context
+        .read<BoardingHouseProvider>()
+        .selectedBoardingHouse
+        ?.id;
     final success = await context.read<TenantProvider>().addTenant(
       Tenant(
         id: 0,
@@ -128,14 +134,20 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
   Widget build(BuildContext context) {
     final bhProvider = context.watch<BoardingHouseProvider>();
     final roomProvider = context.watch<RoomProvider>();
-    final boardingHouses = bhProvider.boardingHouses;
     final selectedBh = bhProvider.selectedBoardingHouse;
+    final boardingHouses = selectedBh == null
+        ? bhProvider.boardingHouses
+        : bhProvider.boardingHouses
+              .where((house) => house.id == selectedBh.id)
+              .toList();
 
     if (boardingHouses.isNotEmpty && !_hasSyncedSelection) {
       _hasSyncedSelection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        setState(() => _selectedHouseId = selectedBh?.id ?? boardingHouses.first.id);
+        setState(
+          () => _selectedHouseId = selectedBh?.id ?? boardingHouses.first.id,
+        );
       });
     }
 
@@ -211,12 +223,14 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedHouseId = value;
-                            _selectedRoomId = null;
-                          });
-                        },
+                        onChanged: selectedBh != null
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedHouseId = value;
+                                  _selectedRoomId = null;
+                                });
+                              },
                       ),
                     if (roomsForHouse.isEmpty)
                       _EmptyText(
@@ -432,7 +446,7 @@ class _DropdownField<T> extends StatelessWidget {
   final String label;
   final T? value;
   final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
 
   @override
   Widget build(BuildContext context) {

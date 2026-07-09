@@ -3,6 +3,7 @@ package utils
 import (
 	"ruma/config"
 	"ruma/models"
+
 	"gorm.io/gorm"
 )
 
@@ -38,6 +39,43 @@ func GetOwnerRoomIDs(ownerID uint) ([]uint, error) {
 	var roomIDs []uint
 	err := config.DB.Model(&models.Room{}).Where("boarding_house_id IN ?", bhIDs).Pluck("id", &roomIDs).Error
 	return roomIDs, err
+}
+
+func OwnerOwnsBoardingHouse(ownerID uint, boardingHouseID uint) (bool, error) {
+	if boardingHouseID == 0 {
+		return false, nil
+	}
+	var count int64
+	err := config.DB.Model(&models.BoardingHouse{}).
+		Where("id = ? AND owner_id = ?", boardingHouseID, ownerID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func GetTenantBoardingHouseID(userID uint) (uint, error) {
+	tenant, err := GetTenantByUserID(userID)
+	if err != nil {
+		return 0, err
+	}
+
+	var room models.Room
+	if err := config.DB.First(&room, tenant.RoomID).Error; err != nil {
+		return 0, err
+	}
+
+	return room.BoardingHouseID, nil
+}
+
+func UserIsTenantInBoardingHouse(userID uint, boardingHouseID uint) (bool, error) {
+	if userID == 0 || boardingHouseID == 0 {
+		return false, nil
+	}
+	var count int64
+	err := config.DB.Model(&models.Tenant{}).
+		Joins("JOIN rooms ON rooms.id = tenants.room_id").
+		Where("tenants.user_id = ? AND rooms.boarding_house_id = ?", userID, boardingHouseID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 func GetOwnerTenantIDs(ownerID uint) ([]uint, error) {

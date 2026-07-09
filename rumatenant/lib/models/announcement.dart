@@ -1,6 +1,9 @@
 class Announcement {
   final int id;
   final int ownerId;
+  final int boardingHouseId;
+  final String targetType;
+  final int? targetUserId;
   final String title;
   final String content;
   final DateTime date;
@@ -10,6 +13,9 @@ class Announcement {
   Announcement({
     required this.id,
     required this.ownerId,
+    required this.boardingHouseId,
+    this.targetType = 'boarding_house',
+    this.targetUserId,
     required this.title,
     required this.content,
     required this.date,
@@ -21,6 +27,9 @@ class Announcement {
     return Announcement(
       id: json['id'] ?? 0,
       ownerId: json['owner_id'] ?? 0,
+      boardingHouseId: json['boarding_house_id'] ?? 0,
+      targetType: json['target_type'] ?? 'boarding_house',
+      targetUserId: json['target_user_id'],
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       date: json['date'] != null

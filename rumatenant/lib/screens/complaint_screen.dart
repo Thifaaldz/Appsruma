@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/theme.dart';
 import '../data/tenant_design_data.dart';
@@ -23,6 +24,20 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   String _activeTab = 'Buat Laporan';
   String _selectedCategory = 'AC';
   String _photoUrl = '';
+
+  Future<void> _openWhatsApp() async {
+    final message = Uri.encodeComponent(
+      'Halo Ibu Kos, saya ingin menyampaikan keluhan.',
+    );
+    final uri = Uri.parse('https://wa.me/6285692539070?text=$message');
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak bisa membuka WhatsApp.')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -314,38 +329,64 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                 const RumaSectionHeader(title: 'Butuh bantuan cepat?'),
                 const SizedBox(height: 8),
                 RumaPanel(
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.chat_bubble_outline,
-                        color: AppTheme.textDark,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: EdgeInsets.zero,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _openWhatsApp,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
                           children: [
-                            Text(
-                              'Chat Admin',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDDF3E6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: Color(0xFF24613B),
+                              ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Hubungi pengelola kos langsung',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: AppTheme.textDark,
-                                    fontSize: 13,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Chat Ibu Kos',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16,
+                                        ),
                                   ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'WhatsApp 085692539070',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.textDark,
+                                          fontSize: 13,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.open_in_new_rounded,
+                              color: AppTheme.olive,
+                              size: 20,
                             ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ] else ...[

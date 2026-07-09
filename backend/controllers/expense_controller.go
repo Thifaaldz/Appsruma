@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"ruma/models"
 	"ruma/repositories"
+	"ruma/utils"
 	"strconv"
 	"time"
 
@@ -32,6 +33,19 @@ func (ctrl *ExpenseController) CreateExpense(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.BoardingHouseID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "boarding_house_id wajib diisi"})
+		return
+	}
+	owns, err := utils.OwnerOwnsBoardingHouse(userID.(uint), input.BoardingHouseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memverifikasi kos"})
+		return
+	}
+	if !owns {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Kos tidak terdaftar pada akun Anda"})
 		return
 	}
 
@@ -73,6 +87,15 @@ func (ctrl *ExpenseController) GetMyExpenses(c *gin.Context) {
 		bhID, convErr := strconv.Atoi(bhIDStr)
 		if convErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid boarding_house_id"})
+			return
+		}
+		owns, verifyErr := utils.OwnerOwnsBoardingHouse(userID.(uint), uint(bhID))
+		if verifyErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memverifikasi kos"})
+			return
+		}
+		if !owns {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak"})
 			return
 		}
 		expenses, err = ctrl.expenseRepo.FindByOwnerAndBoardingHouse(userID.(uint), uint(bhID))

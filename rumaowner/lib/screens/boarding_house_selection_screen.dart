@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/boarding_house_provider.dart';
+import '../providers/room_provider.dart';
+import '../providers/tenant_provider.dart';
 import '../widgets/owner_widgets.dart';
 import 'property_detail_screen.dart';
 
@@ -10,10 +12,12 @@ class BoardingHouseSelectionScreen extends StatefulWidget {
   const BoardingHouseSelectionScreen({super.key});
 
   @override
-  State<BoardingHouseSelectionScreen> createState() => _BoardingHouseSelectionScreenState();
+  State<BoardingHouseSelectionScreen> createState() =>
+      _BoardingHouseSelectionScreenState();
 }
 
-class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScreen> {
+class _BoardingHouseSelectionScreenState
+    extends State<BoardingHouseSelectionScreen> {
   @override
   void initState() {
     super.initState();
@@ -69,26 +73,26 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                 Text(
                   'Selamat Datang kembali,',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 18,
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    fontSize: 18,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   ownerName,
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Silakan pilih rumah kos yang ingin Anda kelola hari ini:',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 if (bhProvider.isLoading)
@@ -102,7 +106,10 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                   )
                 else if (bhProvider.boardingHouses.isEmpty)
                   OwnerPanel(
-                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 36,
+                      horizontal: 20,
+                    ),
                     child: Column(
                       children: [
                         const Icon(
@@ -143,7 +150,8 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: bhProvider.boardingHouses.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 16),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final house = bhProvider.boardingHouses[index];
                           final imageUrl = house.imageUrl.isNotEmpty
@@ -155,6 +163,12 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                           return GestureDetector(
                             onTap: () {
                               bhProvider.selectBoardingHouse(house);
+                              context
+                                  .read<RoomProvider>()
+                                  .setActiveBoardingHouse(house.id);
+                              context
+                                  .read<TenantProvider>()
+                                  .setActiveBoardingHouse(house.id);
                             },
                             child: Container(
                               decoration: BoxDecoration(
@@ -171,7 +185,8 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                               clipBehavior: Clip.antiAlias,
                               child: IntrinsicHeight(
                                 child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       flex: 3,
@@ -185,8 +200,10 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                                       child: Padding(
                                         padding: const EdgeInsets.all(16),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               house.name,
@@ -212,10 +229,12 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                                                     house.address,
                                                     style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: AppTheme.textSecondary,
+                                                      color: AppTheme
+                                                          .textSecondary,
                                                     ),
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
@@ -224,39 +243,53 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
                                                   decoration: BoxDecoration(
-                                                    color: AppTheme.statusBlueBg,
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color:
+                                                        AppTheme.statusBlueBg,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                   ),
                                                   child: Text(
                                                     '$roomsCount Kamar',
                                                     style: const TextStyle(
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: AppTheme.statusBlueText,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppTheme
+                                                          .statusBlueText,
                                                     ),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
                                                   decoration: BoxDecoration(
-                                                    color: AppTheme.statusGreenBg,
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color:
+                                                        AppTheme.statusGreenBg,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                   ),
                                                   child: Text(
                                                     '$vacantCount Kosong',
                                                     style: const TextStyle(
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: AppTheme.statusGreenText,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppTheme
+                                                          .statusGreenText,
                                                     ),
                                                   ),
                                                 ),
@@ -288,7 +321,10 @@ class _BoardingHouseSelectionScreenState extends State<BoardingHouseSelectionScr
                         icon: const Icon(Icons.add, color: AppTheme.darkOlive),
                         label: const Text('Tambah Kosan Baru'),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppTheme.darkOlive, width: 1.5),
+                          side: const BorderSide(
+                            color: AppTheme.darkOlive,
+                            width: 1.5,
+                          ),
                           minimumSize: const Size.fromHeight(54),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

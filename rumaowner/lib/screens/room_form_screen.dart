@@ -52,7 +52,10 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
     }
     Future.microtask(() {
       if (!mounted) return;
-      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
       context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
     });
@@ -160,8 +163,12 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
   @override
   Widget build(BuildContext context) {
     final bhProvider = context.watch<BoardingHouseProvider>();
-    final boardingHouses = bhProvider.boardingHouses;
     final selectedBh = bhProvider.selectedBoardingHouse;
+    final boardingHouses = selectedBh == null
+        ? bhProvider.boardingHouses
+        : bhProvider.boardingHouses
+              .where((house) => house.id == selectedBh.id)
+              .toList();
 
     if (boardingHouses.isNotEmpty) {
       final hasValidSelection =
@@ -242,18 +249,21 @@ class _RoomFormScreenState extends State<RoomFormScreen> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) {
-                    final selectedHouse = boardingHouses.firstWhere(
-                      (house) => house.id == value,
-                    );
-                    setState(() {
-                      _selectedHouseId = value;
-                      if (!_isEdit || _useDefaultPrice) {
-                        _priceController.text = selectedHouse.defaultRoomPrice
-                            .toStringAsFixed(0);
-                      }
-                    });
-                  },
+                  onChanged: selectedBh != null
+                      ? null
+                      : (value) {
+                          final selectedHouse = boardingHouses.firstWhere(
+                            (house) => house.id == value,
+                          );
+                          setState(() {
+                            _selectedHouseId = value;
+                            if (!_isEdit || _useDefaultPrice) {
+                              _priceController.text = selectedHouse
+                                  .defaultRoomPrice
+                                  .toStringAsFixed(0);
+                            }
+                          });
+                        },
                   decoration: const InputDecoration(),
                 ),
               const SizedBox(height: 18),

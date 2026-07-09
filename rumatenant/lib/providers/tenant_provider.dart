@@ -37,9 +37,9 @@ class TenantProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    await Future.wait([_fetchUserProfile(), _fetchTenantInfo()]);
+
     await Future.wait([
-      _fetchUserProfile(),
-      _fetchTenantInfo(),
       _fetchBoardingHouse(),
       _fetchPayments(),
       _fetchAnnouncements(),
@@ -113,9 +113,7 @@ class TenantProvider with ChangeNotifier {
   /// Get the current pending payment (if any)
   Payment? get pendingPayment {
     try {
-      return _payments.firstWhere(
-        (p) => p.status == 'pending',
-      );
+      return _payments.firstWhere((p) => p.status == 'pending');
     } catch (_) {
       return null;
     }
@@ -139,7 +137,9 @@ class TenantProvider with ChangeNotifier {
   /// Request Snap token and redirect URL from Midtrans via Go backend
   Future<Map<String, dynamic>?> getMidtransSnapToken(int paymentId) async {
     try {
-      final response = await _apiClient.dio.post('/payments/$paymentId/snap-token');
+      final response = await _apiClient.dio.post(
+        '/payments/$paymentId/snap-token',
+      );
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
       }
@@ -176,7 +176,10 @@ class TenantProvider with ChangeNotifier {
     } on DioException catch (e) {
       debugPrint('TenantProvider.payNextMonth error: $e');
       if (e.response?.data != null && e.response!.data is Map) {
-        return {'error': e.response!.data['error'] ?? 'Gagal membuat tagihan bulan depan'};
+        return {
+          'error':
+              e.response!.data['error'] ?? 'Gagal membuat tagihan bulan depan',
+        };
       }
     } catch (e) {
       debugPrint('TenantProvider.payNextMonth error: $e');
@@ -190,7 +193,17 @@ class TenantProvider with ChangeNotifier {
       final response = await _apiClient.dio.get('/announcements');
       if (response.statusCode == 200) {
         final list = response.data as List;
-        _announcements = list.map((e) => Announcement.fromJson(e)).toList();
+        final currentUserId = _user?.id ?? _tenant?.userId ?? 0;
+        _announcements = list.map((e) => Announcement.fromJson(e)).where((
+          announcement,
+        ) {
+          final targetUserId = announcement.targetUserId ?? 0;
+          final isPersonal =
+              announcement.targetType.toLowerCase() == 'user' ||
+              targetUserId > 0;
+          if (!isPersonal) return true;
+          return currentUserId > 0 && targetUserId == currentUserId;
+        }).toList();
       }
     } catch (e) {
       debugPrint('TenantProvider._fetchAnnouncements error: $e');

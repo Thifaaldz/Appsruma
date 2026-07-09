@@ -27,6 +27,49 @@ func NewPaymentController(paymentRepo repositories.PaymentRepository) *PaymentCo
 	return &PaymentController{paymentRepo: paymentRepo}
 }
 
+func (ctrl *PaymentController) authorizePaymentAccess(c *gin.Context, payment *models.Payment) bool {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	if role == "tenant" {
+		tenant, err := utils.GetTenantByUserID(userID.(uint))
+		if err != nil || tenant.ID != payment.TenantID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return false
+		}
+		return true
+	}
+
+	if role == "owner" {
+		tenantIDs, err := utils.GetOwnerTenantIDs(userID.(uint))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify tenant details"})
+			return false
+		}
+		for _, tid := range tenantIDs {
+			if tid == payment.TenantID {
+				return true
+			}
+		}
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return false
+	}
+
+	return true
+}
+
+func paymentIDFromOrderID(orderID string) (uint, error) {
+	parts := strings.Split(orderID, "-")
+	if len(parts) < 3 || parts[0] != "RUMA" || parts[1] != "PAY" {
+		return 0, fmt.Errorf("invalid order format")
+	}
+	paymentIDVal, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return 0, fmt.Errorf("invalid payment ID")
+	}
+	return uint(paymentIDVal), nil
+}
+
 // getBillingPeriodLabel returns Indonesian month-year label for a given date
 func getBillingPeriodLabel(t time.Time) string {
 	months := []string{
@@ -516,7 +559,6 @@ func (ctrl *PaymentController) PayNextMonth(c *gin.Context) {
 // GetSnapToken generates a Midtrans Snap transaction token and redirect URL
 func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 	paymentID, _ := strconv.Atoi(c.Param("id"))
-	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
 	payment, err := ctrl.paymentRepo.FindByID(uint(paymentID))
@@ -530,10 +572,8 @@ func (ctrl *PaymentController) GetSnapToken(c *gin.Context) {
 		return
 	}
 
-	if role == "tenant" {
-		tenant, err := utils.GetTenantByUserID(userID.(uint))
-		if err != nil || tenant.ID != payment.TenantID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+	if role == "tenant" || role == "owner" {
+		if !ctrl.authorizePaymentAccess(c, payment) {
 			return
 		}
 	}
@@ -762,6 +802,21 @@ func (ctrl *PaymentController) syncPendingPaymentsWithMidtrans(payments []models
 // CheckPaymentStatus queries Midtrans status API directly to verify the status
 func (ctrl *PaymentController) CheckPaymentStatus(c *gin.Context) {
 	orderID := c.Param("orderId") // e.g. RUMA-PAY-1-1628100101
+
+	paymentID, parseErr := paymentIDFromOrderID(orderID)
+	if parseErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": parseErr.Error()})
+		return
+	}
+
+	payment, err := ctrl.paymentRepo.FindByID(paymentID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Payment not found"})
+		return
+	}
+	if !ctrl.authorizePaymentAccess(c, payment) {
+		return
+	}
 
 	_, statusResp, err := ctrl.checkAndUpdateStatus(orderID)
 	if err != nil {

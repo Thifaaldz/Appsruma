@@ -60,14 +60,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
       final dateStr = DateFormat('d MMM yyyy, HH.mm', 'id_ID').format(ann.date);
 
-      allNotifications.add(NotificationItemLocal(
-        icon: icon,
-        backgroundColor: bgColor,
-        title: ann.title,
-        subtitle: ann.content,
-        time: dateStr,
-        type: 'Pengumuman',
-      ));
+      allNotifications.add(
+        NotificationItemLocal(
+          icon: icon,
+          backgroundColor: bgColor,
+          title: ann.title,
+          subtitle: ann.content,
+          time: dateStr,
+          type: 'Pengumuman',
+        ),
+      );
     }
 
     // 2. Map Payments into notifications
@@ -76,35 +78,42 @@ class _NotificationScreenState extends State<NotificationScreen> {
         // Successful payment notification
         final dateRaw = p.paidAt ?? p.paymentDate;
         final dateVal = DateTime.tryParse(dateRaw) ?? DateTime.now();
-        final dateStr = DateFormat('d MMM yyyy, HH.mm', 'id_ID').format(dateVal);
+        final dateStr = DateFormat(
+          'd MMM yyyy, HH.mm',
+          'id_ID',
+        ).format(dateVal);
 
-        allNotifications.add(NotificationItemLocal(
-          icon: Icons.check_circle_outline,
-          backgroundColor: const Color(0xFFDDF5E4),
-          title: 'Pembayaran Berhasil',
-          subtitle: 'Pembayaran tagihan bulan ${p.billingPeriod} lunas.',
-          time: dateStr,
-          type: 'Sistem',
-        ));
+        allNotifications.add(
+          NotificationItemLocal(
+            icon: Icons.check_circle_outline,
+            backgroundColor: const Color(0xFFDDF5E4),
+            title: 'Pembayaran Berhasil',
+            subtitle: 'Pembayaran tagihan bulan ${p.billingPeriod} lunas.',
+            time: dateStr,
+            type: 'Sistem',
+          ),
+        );
       } else if (p.status == 'pending' || p.status == 'overdue') {
         // Billing reminder notification
         final dueDateVal = DateTime.tryParse(p.dueDate) ?? DateTime.now();
         final dateStr = DateFormat('d MMM yyyy', 'id_ID').format(dueDateVal);
 
-        allNotifications.add(NotificationItemLocal(
-          icon: Icons.notifications_none,
-          backgroundColor: p.status == 'overdue'
-              ? const Color(0xFFF9DCDC)
-              : const Color(0xFFFFF6B9),
-          title: p.status == 'overdue'
-              ? 'Tagihan Jatuh Tempo!'
-              : 'Pengingat Pembayaran',
-          subtitle: p.status == 'overdue'
-              ? 'Tagihan bulan ${p.billingPeriod} melewati jatuh tempo.'
-              : 'Jatuh tempo tanggal $dateStr.',
-          time: dateStr,
-          type: 'Pengingat',
-        ));
+        allNotifications.add(
+          NotificationItemLocal(
+            icon: Icons.notifications_none,
+            backgroundColor: p.status == 'overdue'
+                ? const Color(0xFFF9DCDC)
+                : const Color(0xFFFFF6B9),
+            title: p.status == 'overdue'
+                ? 'Tagihan Jatuh Tempo!'
+                : 'Pengingat Pembayaran',
+            subtitle: p.status == 'overdue'
+                ? 'Tagihan bulan ${p.billingPeriod} melewati jatuh tempo.'
+                : 'Jatuh tempo tanggal $dateStr.',
+            time: dateStr,
+            type: 'Pengingat',
+          ),
+        );
       }
     }
 
@@ -114,6 +123,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (_selectedFilter == 'Semua') return true;
       return item.type == _selectedFilter;
     }).toList();
+    int countFor(String type) {
+      if (type == 'Semua') return allNotifications.length;
+      return allNotifications.where((item) => item.type == type).length;
+    }
 
     return SafeArea(
       bottom: false,
@@ -133,31 +146,69 @@ class _NotificationScreenState extends State<NotificationScreen> {
               const RumaBrandLogo(height: 22),
               const SizedBox(height: 34),
               const RumaPageTitle(title: 'Notifikasi'),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  RumaFilterChip(
-                    label: 'Semua',
-                    selected: _selectedFilter == 'Semua',
-                    onTap: () => setState(() => _selectedFilter = 'Semua'),
-                  ),
-                  RumaFilterChip(
-                    label: 'Pengingat',
-                    selected: _selectedFilter == 'Pengingat',
-                    onTap: () => setState(() => _selectedFilter = 'Pengingat'),
-                  ),
-                  RumaFilterChip(
-                    label: 'Pengumuman',
-                    selected: _selectedFilter == 'Pengumuman',
-                    onTap: () => setState(() => _selectedFilter = 'Pengumuman'),
-                  ),
-                  RumaFilterChip(
-                    label: 'Sistem',
-                    selected: _selectedFilter == 'Sistem',
-                    onTap: () => setState(() => _selectedFilter = 'Sistem'),
-                  ),
-                ],
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.creamSoft,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final itemWidth = (constraints.maxWidth - 8) / 2;
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        SizedBox(
+                          width: itemWidth,
+                          child: _NotificationFilterButton(
+                            label: 'Semua',
+                            icon: Icons.notifications_none,
+                            count: countFor('Semua'),
+                            selected: _selectedFilter == 'Semua',
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'Semua'),
+                          ),
+                        ),
+                        SizedBox(
+                          width: itemWidth,
+                          child: _NotificationFilterButton(
+                            label: 'Pengingat',
+                            icon: Icons.alarm_outlined,
+                            count: countFor('Pengingat'),
+                            selected: _selectedFilter == 'Pengingat',
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'Pengingat'),
+                          ),
+                        ),
+                        SizedBox(
+                          width: itemWidth,
+                          child: _NotificationFilterButton(
+                            label: 'Pengumuman',
+                            icon: Icons.campaign_outlined,
+                            count: countFor('Pengumuman'),
+                            selected: _selectedFilter == 'Pengumuman',
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'Pengumuman'),
+                          ),
+                        ),
+                        SizedBox(
+                          width: itemWidth,
+                          child: _NotificationFilterButton(
+                            label: 'Sistem',
+                            icon: Icons.check_circle_outline,
+                            count: countFor('Sistem'),
+                            selected: _selectedFilter == 'Sistem',
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'Sistem'),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 18),
               if (filteredNotifications.isEmpty)
@@ -176,7 +227,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 RumaPanel(
                   padding: EdgeInsets.zero,
                   child: Column(
-                    children: filteredNotifications.asMap().entries.map((entry) {
+                    children: filteredNotifications.asMap().entries.map((
+                      entry,
+                    ) {
                       final index = entry.key;
                       final item = entry.value;
                       return Column(
@@ -189,6 +242,96 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     }).toList(),
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationFilterButton extends StatelessWidget {
+  const _NotificationFilterButton({
+    required this.label,
+    required this.icon,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : AppTheme.textDark;
+    final countBackground = selected ? Colors.white : AppTheme.accentSoft;
+    final countColor = selected ? AppTheme.olive : AppTheme.accent;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.olive : AppTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? AppTheme.olive : AppTheme.border,
+              width: 1.2,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.olive.withValues(alpha: 0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: foreground),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                constraints: const BoxConstraints(minWidth: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: countBackground,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$count',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: countColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -225,26 +368,31 @@ class _NotificationRow extends StatelessWidget {
               children: [
                 Text(
                   item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.subtitle,
+                  softWrap: true,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textDark,
-                        fontSize: 12,
-                      ),
+                    color: AppTheme.textDark,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.time,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textMuted,
-                        fontSize: 12,
-                      ),
+                    color: AppTheme.textMuted,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

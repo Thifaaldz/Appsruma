@@ -40,7 +40,6 @@ class ProfileScreen extends StatelessWidget {
     final email = user?.email ?? '-';
     final roomNum = room?.roomNumber ?? '-';
     final checkIn = tenant?.checkInDate ?? '';
-    final checkOut = tenant?.checkOutDate ?? '';
 
     final fields = [
       _ProfileField(
@@ -48,11 +47,7 @@ class ProfileScreen extends StatelessWidget {
         label: 'Nomor Telepon',
         value: phone,
       ),
-      _ProfileField(
-        icon: Icons.mail_outline,
-        label: 'Email',
-        value: email,
-      ),
+      _ProfileField(icon: Icons.mail_outline, label: 'Email', value: email),
       _ProfileField(
         icon: Icons.meeting_room_outlined,
         label: 'Nomor Kamar',
@@ -63,18 +58,14 @@ class ProfileScreen extends StatelessWidget {
         label: 'Mulai Sewa',
         value: _formatDate(checkIn),
       ),
-      if (checkOut.isNotEmpty)
-        _ProfileField(
-          icon: Icons.event_note_outlined,
-          label: 'Selesai Sewa',
-          value: _formatDate(checkOut),
-        ),
     ];
 
     return SafeArea(
       bottom: false,
       child: tp.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.olive))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.olive),
+            )
           : RefreshIndicator(
               onRefresh: () => tp.refresh(),
               color: AppTheme.olive,
@@ -107,11 +98,13 @@ class ProfileScreen extends StatelessWidget {
                                     child: Image.network(
                                       user!.profileImage,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(
-                                        Icons.person,
-                                        size: 48,
-                                        color: AppTheme.textSecondary,
-                                      ),
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.person,
+                                                size: 48,
+                                                color: AppTheme.textSecondary,
+                                              ),
                                     ),
                                   )
                                 : const Icon(
@@ -127,10 +120,8 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       name,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(fontSize: 24, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -202,9 +193,7 @@ class ProfileScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 'Bantuan dan Keluhan',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
@@ -228,10 +217,13 @@ class ProfileScreen extends StatelessWidget {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Keluar'),
-                              content: const Text('Apakah Anda yakin ingin keluar?'),
+                              content: const Text(
+                                'Apakah Anda yakin ingin keluar?',
+                              ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('Batal'),
                                 ),
                                 TextButton(

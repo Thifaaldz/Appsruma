@@ -28,9 +28,12 @@ class _TenantScreenState extends State<TenantScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
       context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
-      context.read<TenantProvider>().fetchTenantUsers();
+      context.read<TenantProvider>().fetchTenantUsers(boardingHouseId: bhId);
       context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
     });
@@ -54,9 +57,13 @@ class _TenantScreenState extends State<TenantScreen> {
     final tenantProvider = context.watch<TenantProvider>();
     final roomProvider = context.watch<RoomProvider>();
     final bhProvider = context.watch<BoardingHouseProvider>();
+    final selectedBh = bhProvider.selectedBoardingHouse;
 
     final filteredTenants = tenantProvider.tenants.where((tenant) {
       final query = _searchQuery.toLowerCase();
+      if (selectedBh != null && tenant.boardingHouseId != selectedBh.id) {
+        return false;
+      }
       return (tenant.userName ?? '').toLowerCase().contains(query) ||
           tenant.phone.toLowerCase().contains(query);
     }).toList();

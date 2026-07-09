@@ -36,7 +36,6 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			auth.POST("/register", authController.Register)
 			auth.POST("/login", authController.Login)
-			auth.GET("/tenants", authController.GetTenantUsers)
 		}
 
 		// Public webhook for Midtrans
@@ -48,6 +47,7 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			protected.GET("/auth/me", authController.GetMe)
 			protected.PUT("/auth/me", authController.UpdateMe)
+			protected.GET("/auth/tenants", authController.GetTenantUsers)
 
 			// Boarding Houses
 			bhs := protected.Group("/boarding-houses")

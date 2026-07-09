@@ -45,7 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Future.microtask(() {
       if (!mounted) return;
       context.read<AuthProvider>().fetchProfile();
-      final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+      final bhId = context
+          .read<BoardingHouseProvider>()
+          .selectedBoardingHouse
+          ?.id;
       context.read<BoardingHouseProvider>().fetchBoardingHouses();
       context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
       context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
@@ -94,8 +97,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Pemasukan Bulan Ini
     final now = DateTime.now();
-    final thisMonthPayments = allPaidPayments.where((p) =>
-        p.paymentDate.month == now.month && p.paymentDate.year == now.year);
+    final thisMonthPayments = allPaidPayments.where(
+      (p) => p.paymentDate.month == now.month && p.paymentDate.year == now.year,
+    );
     final thisMonthIncomeValue = thisMonthPayments.fold<double>(
       0,
       (sum, p) => sum + p.amount,
@@ -108,9 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
         .where((p) => p.status == 'pending' || p.status == 'overdue')
         .length;
     final complaintsCount = complaintProvider.complaints
-        .where((c) =>
-            c.status.toLowerCase() != 'done' &&
-            c.status.toLowerCase() != 'selesai')
+        .where(
+          (c) =>
+              c.status.toLowerCase() != 'done' &&
+              c.status.toLowerCase() != 'selesai',
+        )
         .length;
 
     return SafeArea(
@@ -119,18 +125,29 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: () async {
           await context.read<AuthProvider>().fetchProfile();
           if (!mounted) return;
-          final bhId = context.read<BoardingHouseProvider>().selectedBoardingHouse?.id;
+          final bhId = context
+              .read<BoardingHouseProvider>()
+              .selectedBoardingHouse
+              ?.id;
           await context.read<BoardingHouseProvider>().fetchBoardingHouses();
           if (!mounted) return;
           await context.read<RoomProvider>().fetchRooms(boardingHouseId: bhId);
           if (!mounted) return;
-          await context.read<TenantProvider>().fetchTenants(boardingHouseId: bhId);
+          await context.read<TenantProvider>().fetchTenants(
+            boardingHouseId: bhId,
+          );
           if (!mounted) return;
-          await context.read<ComplaintProvider>().fetchComplaints(boardingHouseId: bhId);
+          await context.read<ComplaintProvider>().fetchComplaints(
+            boardingHouseId: bhId,
+          );
           if (!mounted) return;
-          await context.read<PaymentProvider>().fetchPayments(boardingHouseId: bhId);
+          await context.read<PaymentProvider>().fetchPayments(
+            boardingHouseId: bhId,
+          );
           if (!mounted) return;
-          await context.read<ExpenseProvider>().fetchExpenses(boardingHouseId: bhId);
+          await context.read<ExpenseProvider>().fetchExpenses(
+            boardingHouseId: bhId,
+          );
         },
         color: AppTheme.darkOlive,
         child: SingleChildScrollView(
@@ -144,8 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
               // Profile header
               OwnerPanel(
                 backgroundColor: AppTheme.cardWhite,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     OwnerProfileAvatar(
@@ -160,9 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             'Selamat Datang,',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -170,9 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Text(
                             ownerName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .displayLarge
+                            style: Theme.of(context).textTheme.displayLarge
                                 ?.copyWith(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
@@ -181,7 +196,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              const Icon(Icons.home_work, size: 16, color: AppTheme.accent),
+                              const Icon(
+                                Icons.home_work,
+                                size: 16,
+                                color: AppTheme.accent,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -198,10 +217,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: () {
-                                  context.read<BoardingHouseProvider>().clearSelection();
+                                  context
+                                      .read<RoomProvider>()
+                                      .setActiveBoardingHouse(null);
+                                  context
+                                      .read<TenantProvider>()
+                                      .setActiveBoardingHouse(null);
+                                  context
+                                      .read<BoardingHouseProvider>()
+                                      .clearSelection();
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     border: Border.all(color: AppTheme.accent),
                                     borderRadius: BorderRadius.circular(4),
@@ -229,8 +259,10 @@ class _HomeScreenState extends State<HomeScreen> {
               // Dashboard header
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.darkOlive,
                   borderRadius: BorderRadius.circular(14),
@@ -246,10 +278,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'Dashboard',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.lightBeige,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: AppTheme.lightBeige,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -311,19 +343,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'Total Pemasukan',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.lightBeige,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: AppTheme.lightBeige,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     Text(
                       totalIncomeLabel,
-                      style:
-                          Theme.of(context).textTheme.displayLarge?.copyWith(
-                                color: AppTheme.lightBeige,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: AppTheme.lightBeige,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -362,8 +393,10 @@ class _HomeScreenState extends State<HomeScreen> {
               GestureDetector(
                 onTap: widget.onOpenPayments,
                 child: OwnerPanel(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.notifications_active_outlined, size: 34),
@@ -371,11 +404,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: Text(
                           'Pengingat Jatuh tempo!',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                       ),
                       _CounterBubble(text: '$pendingPayments'),
@@ -389,8 +422,10 @@ class _HomeScreenState extends State<HomeScreen> {
               GestureDetector(
                 onTap: widget.onOpenComplaints,
                 child: OwnerPanel(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.mark_chat_unread_outlined, size: 34),
@@ -398,11 +433,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: Text(
                           'Keluhan Baru!',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                       ),
                       _CounterBubble(text: '$complaintsCount'),
@@ -449,22 +484,26 @@ class _TappableMetricCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     value,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: AppTheme.textSecondary),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: AppTheme.textSecondary,
+            ),
           ],
         ),
       ),
@@ -490,9 +529,9 @@ class _CounterBubble extends StatelessWidget {
         child: Text(
           text,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
         ),
       ),
     );

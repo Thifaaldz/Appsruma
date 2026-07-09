@@ -147,17 +147,8 @@ func (ctrl *RoomController) CreateRoom(c *gin.Context) {
 		var bh models.BoardingHouse
 		err := config.DB.Where("id = ? AND owner_id = ?", room.BoardingHouseID, userID.(uint)).First(&bh).Error
 		if err != nil {
-			// Fallback to their default boarding house
-			bhID, err := utils.GetOrCreateDefaultBoardingHouse(userID.(uint))
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify boarding house"})
-				return
-			}
-			room.BoardingHouseID = bhID
-			if err := config.DB.First(&bh, bhID).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load default boarding house"})
-				return
-			}
+			c.JSON(http.StatusForbidden, gin.H{"error": "Selected boarding house access denied"})
+			return
 		}
 		if room.UseDefaultPrice {
 			room.Price = bh.DefaultRoomPrice
